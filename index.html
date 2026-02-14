@@ -3,120 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANI-ME 雲端共享版</title>
+    <title>ANIWORLD</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
-        :root { --bg: #0c0c0c; --card: #1c1c1c; --text: #ffffff; --accent: #00b4d8; --sub: #888; }
-        body { background: var(--bg); color: var(--text); font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; padding-bottom: 80px; }
-        
-        /* 登入鎖定 */
-        #login-overlay { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; align-items: center; justify-content: center; }
-        .login-box { background: #1a1a1a; padding: 30px; border-radius: 15px; width: 85%; max-width: 350px; text-align: center; border: 1px solid #333; }
-        
-        /* 導航欄修復 */
-        nav { background: #000; padding: 12px 15px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #222; overflow-x: auto; white-space: nowrap; }
-        nav .logo { color: var(--accent); font-weight: 900; font-size: 1.4rem; cursor: pointer; margin-right: 20px; flex-shrink: 0; }
-        .nav-links { display: flex; gap: 15px; flex-shrink: 0; }
-        .nav-links a { color: #aaa; text-decoration: none; font-size: 0.95rem; font-weight: bold; cursor: pointer; padding: 5px 2px; }
-        .nav-links a.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
-        .nav-btns { margin-left: auto; display: flex; gap: 8px; padding-left: 15px; }
-
-        .container { padding: 15px; max-width: 1400px; margin: auto; }
-        .section-title { border-left: 6px solid var(--accent); padding-left: 12px; margin: 20px 0; font-size: 1.3rem; font-weight: bold; }
-        
-        /* 網格系統 */
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-        @media (min-width: 768px) { .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; } }
-        
-        /* 卡片與標題 - 比照動畫瘋不縮寫 */
-        .card { background: none; overflow: hidden; position: relative; cursor: pointer; transition: 0.2s; }
-        .card:hover img { transform: scale(1.05); }
-        .img-container { width: 100%; aspect-ratio: 3/4; overflow: hidden; border-radius: 8px; border: 1px solid #222; position: relative; }
-        .card img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
-        .card-info { padding: 8px 2px; }
-        .card-title { 
-            font-size: 0.95rem; 
-            line-height: 1.4; 
-            color: #fff; 
-            word-wrap: break-word; 
-            white-space: normal; 
-            display: block; /* 移除省略號限制，讓它自然換行 */
+        :root { 
+            --bg: #0a0a0c; --nav: rgba(15, 15, 18, 0.9); --card: rgba(30, 30, 35, 0.6); --accent: #00b4d8; 
+            --text: #f3f3f3; --sub: #a0a0a0; --border: rgba(255,255,255,0.1); --input: #000; --modal: #111;
+            --blob-1: rgba(0, 180, 216, 0.15); --blob-2: rgba(123, 44, 191, 0.15);
         }
-        .card-ep { font-size: 0.8rem; color: var(--sub); margin-top: 4px; }
+        [data-theme="light"] {
+            --bg: #f8f9fa; --nav: rgba(255, 255, 255, 0.9); --card: rgba(255, 255, 255, 0.8); --accent: #0077b6; 
+            --text: #1d1d1f; --sub: #666; --border: #ddd; --input: #f0f0f0; --modal: #ffffff;
+            --blob-1: rgba(0, 180, 216, 0.05); --blob-2: rgba(123, 44, 191, 0.05);
+        }
 
-        /* 標籤 */
-        .tag-pool { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
-        .tag-choice { padding: 5px 12px; background: #333; border-radius: 20px; font-size: 0.75rem; cursor: pointer; color: #ccc; }
-        .tag-choice.selected { background: var(--accent); color: white; }
+        body { background: var(--bg); color: var(--text); font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; margin: 0; padding-bottom: 60px; overflow-x: hidden; transition: background 0.3s; position: relative; }
 
-        /* 集數 */
-        .ep-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 10px; margin-top: 15px; }
-        .ep-item { background: #252525; color: #ccc; padding: 12px 5px; text-align: center; border-radius: 4px; cursor: pointer; border: 1px solid #333; font-weight: bold; }
-        .ep-item.current { background: var(--accent); color: white; }
+        /* 背景動態 */
+        .bg-blobs { position: fixed; inset: 0; z-index: -1; overflow: hidden; filter: blur(80px); pointer-events: none; }
+        .blob { position: absolute; border-radius: 50%; animation: move 20s infinite alternate; }
+        .blob-1 { width: 400px; height: 400px; background: var(--blob-1); top: -100px; left: -100px; }
+        .blob-2 { width: 500px; height: 500px; background: var(--blob-2); bottom: -100px; right: -100px; animation-delay: -5s; }
+        @keyframes move { from { transform: translate(0,0); } to { transform: translate(100px, 100px); } }
 
-        /* 彈窗 */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
-        .modal-content { background: #222; padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; }
-        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #444; background: #111; color: white; box-sizing: border-box; }
+        /* 導航欄 */
+        nav { background: var(--nav); backdrop-filter: blur(20px); padding: 12px 15px; display: flex; align-items: center; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid var(--border); }
+        .logo { color: var(--accent); font-weight: 900; font-size: 1.8rem; margin-right: 15px; cursor: pointer; letter-spacing: -1px; }
+        .nav-links { display: flex; gap: 15px; flex-grow: 1; overflow-x: auto; scrollbar-width: none; }
+        .nav-links a { color: var(--sub); text-decoration: none; font-size: 1.1rem; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .nav-links a.active { color: var(--accent); }
+
+        /* Banner 區域 */
+        .page-banner { width: 100%; height: 280px; position: relative; overflow: hidden; background: #000; }
+        @media (max-width: 768px) { .page-banner { height: 180px; } }
+        #banner-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; transition: object-position 0.3s; }
+        .banner-controls { position: absolute; bottom: 15px; right: 15px; display: flex; gap: 8px; }
+        .banner-btn { background: rgba(0,0,0,0.7); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; backdrop-filter: blur(5px); }
+
+        /* 集數介面 */
+        .ep-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 15px; padding: 30px 20px; max-width: 900px; margin: auto; }
+        .ep-box { background: var(--card); border: 1px solid var(--border); padding: 15px 0; text-align: center; border-radius: 12px; cursor: pointer; font-size: 1.1rem; font-weight: 800; color: var(--text); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); backdrop-filter: blur(5px); }
+        .ep-box.active { background: var(--accent); color: #fff; border: none; box-shadow: 0 0 20px rgba(0, 180, 216, 0.5); transform: scale(1.1); }
+
+        /* 通用元件樣式 */
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        @media (min-width: 768px) { .grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); } }
+        .card { background: var(--card); border-radius: 18px; overflow: hidden; cursor: pointer; border: 1px solid var(--border); position: relative; backdrop-filter: blur(10px); }
+        .card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; }
         
-        .btn { border: none; padding: 8px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; }
-        .btn-accent { background: var(--accent); color: white; }
-        .fab { position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; border-radius: 50%; background: var(--accent); color: white; border: none; font-size: 30px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 99; }
+        #room-modal { position: fixed; inset: 0; background: var(--bg); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 5000; align-items: center; justify-content: center; }
+        .modal-content { background: var(--modal); width: 90%; max-width: 450px; border-radius: 24px; padding: 30px; border: 1px solid var(--border); color: var(--text); }
+        input, textarea, select { width: 100%; padding: 14px; margin: 10px 0; background: var(--input); border: 1px solid var(--border); color: var(--text); border-radius: 12px; box-sizing: border-box; }
+        #noti-panel { display: none; position: fixed; top: 65px; right: 15px; width: 300px; background: var(--modal); border: 1px solid var(--border); border-radius: 18px; z-index: 3000; }
     </style>
 </head>
-<body>
+<body onclick="closeNoti()">
 
-<div id="login-overlay">
-    <div class="login-box">
-        <h2 style="color: var(--accent);">ANI-ME 共享</h2>
-        <input type="text" id="input-group-key" placeholder="輸入 8 位共享代碼">
-        <button class="btn btn-accent" style="width: 100%;" onclick="joinGroup()">進入房間</button>
-        <button class="btn" style="width: 100%; background: #333; color: white; margin-top: 10px;" onclick="createNewGroup()">創建隨機房間</button>
+<div class="bg-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+</div>
+
+<div id="room-modal">
+    <div class="room-card" style="background: var(--modal); border: 1px solid var(--border); padding: 40px 30px; border-radius: 24px; width: 100%; max-width: 360px; text-align: center;">
+        <h2 style="color:var(--accent); margin: 0 0 10px 0;">ANIWORLD</h2>
+        <p style="color:var(--sub); font-size:0.9rem; margin-bottom:30px;">進入同步空間</p>
+        <button onclick="createRoom()" style="width: 100%; padding: 15px; border-radius: 12px; border: none; font-weight: bold; background:var(--accent); color:#fff; cursor: pointer;">✨ 建立新房間 (自訂代碼)</button>
+        <div style="margin:25px 0; color:var(--sub); font-size:0.8rem;">或者</div>
+        <input type="text" id="join-input" placeholder="輸入房號..." style="text-align:center; text-transform:uppercase;">
+        <button onclick="joinRoom()" style="width:100%; padding: 15px; border-radius: 12px; border: 1px solid var(--border); font-weight: bold; background:var(--input); color:var(--text); cursor: pointer; margin-top:15px;">🔗 加入房間</button>
     </div>
 </div>
 
-<nav>
-    <div class="logo" onclick="showPage('home')">ANI-ME</div>
-    <div class="nav-links">
-        <a onclick="showPage('home')" id="nav-home" class="active">首頁</a>
-        <a onclick="showPage('all')" id="nav-all">所有動畫</a>
-        <a onclick="showPage('my')" id="nav-my">我的收藏</a>
-        <a onclick="showPage('history')" id="nav-history">觀看紀錄</a>
-    </div>
-    <div class="nav-btns">
-        <button class="btn btn-accent" style="font-size: 0.7rem;" onclick="copyGroupKey()">複製房間碼</button>
-        <button class="btn" style="background:#333; color:white; font-size: 0.7rem;" onclick="logout()">登出</button>
-    </div>
-</nav>
+<div id="main-view">
+    <nav onclick="event.stopPropagation()">
+        <div class="logo" onclick="showPage('home')">ANIWORLD</div>
+        <div class="nav-links">
+            <a id="nav-home" onclick="showPage('home')" class="active">首頁</a>
+            <a id="nav-all" onclick="showPage('all')">動畫庫</a>
+            <a id="nav-my" onclick="showPage('my')">我的收藏</a>
+            <a id="nav-history" onclick="showPage('history')">觀看紀錄</a>
+        </div>
+        <div class="nav-right" style="display:flex; align-items:center; gap:12px;">
+            <div onclick="toggleNoti()" style="position:relative; cursor:pointer; font-size:1.2rem;">🔔<div id="noti-dot" style="position:absolute; top:-2px; right:-2px; width:8px; height:8px; background:red; border-radius:50%; display:none;"></div></div>
+            <div class="room-tag" id="room-display" onclick="copyRoom()">----</div>
+            <button onclick="toggleTheme()" id="theme-icon" style="background:none; border:none; cursor:pointer; font-size:1.2rem;">🌙</button>
+            <button onclick="logout()" style="background:none; border:none; color:var(--sub); cursor:pointer; font-size:0.8rem;">登出</button>
+        </div>
+    </nav>
 
-<div class="container" id="main-page">
-    <div id="display-content"></div>
+    <div class="page-banner">
+        <img id="banner-img" src="https://images.alphacoders.com/132/1329241.jpeg">
+        <div class="banner-controls">
+            <button class="banner-btn" onclick="document.getElementById('banner-upload').click()">📷 上傳</button>
+            <button class="banner-btn" onclick="adjustBannerPos()">📏 調整位置</button>
+            <button class="banner-btn" style="color:#ff4d4d;" onclick="deleteBanner()">🗑️ 刪除</button>
+        </div>
+        <input type="file" id="banner-upload" hidden accept="image/*" onchange="uploadBanner(this)">
+    </div>
+
+    <div class="container" style="padding:20px; max-width:1400px; margin:auto;">
+        <div id="display-area"></div>
+    </div>
 </div>
 
-<div class="container" id="detail-page" style="display:none;">
-    <button onclick="showPage(lastPage)" style="color:var(--accent); background:none; border:none; cursor:pointer; font-weight:bold; margin-bottom:15px;">← 返回</button>
-    <div id="detail-content"></div>
+<div id="detail-view" style="display:none;">
+    <button onclick="closeDetail()" style="position:fixed; top:20px; left:20px; z-index:100; background:rgba(0,0,0,0.5); border:none; color:#fff; padding:10px 25px; border-radius:30px; cursor:pointer; font-weight:bold; backdrop-filter:blur(10px);">← 返回</button>
+    <div id="detail-hero-area"></div>
+    <div class="detail-content" style="position: relative; margin-top: -150px; padding: 0 20px; display: flex; flex-direction: column; align-items: center;">
+        <div id="detail-poster-area" style="margin-bottom: 25px;"></div>
+        <div id="detail-info-area" style="background: var(--nav); backdrop-filter: blur(20px); border: 1px solid var(--border); padding: 25px; border-radius: 24px; width: 90%; max-width: 600px; text-align: center; color: var(--text);"></div>
+    </div>
+    <div id="ep-list-ui" class="ep-grid"></div>
+    <div id="action-ui" style="display:flex; gap:20px; justify-content:center; margin-bottom:50px;"></div>
 </div>
 
-<div class="modal" id="animeModal">
+<div class="modal" id="editModal">
     <div class="modal-content">
-        <h3 id="modal-header-title">編輯動畫</h3>
+        <h3 style="margin-top:0;">編輯動畫</h3>
         <input type="hidden" id="edit-id">
         <input type="text" id="m-title" placeholder="動畫名稱">
-        <input type="text" id="m-img" placeholder="圖片網址">
-        <input type="text" id="m-year" placeholder="年份">
-        <div class="tag-pool" id="modal-tag-pool"></div>
-        <textarea id="m-links" rows="5" placeholder="播放連結 (一集一行)"></textarea>
-        <button type="button" id="save-btn" onclick="saveAnime()" class="btn btn-accent" style="width:100%;">儲存並同步</button>
-        <button type="button" onclick="closeModal()" style="width:100%; background:none; color:#888; border:none; margin-top:10px;">取消</button>
+        <input type="text" id="m-img" placeholder="封面網址">
+        <select id="m-year"></select>
+        <div class="tag-pool" id="tag-pool-ui" style="display:flex; flex-wrap:wrap; gap:8px; margin:10px 0;"></div>
+        <textarea id="m-links" rows="5" placeholder="影片連結 (一行一個)"></textarea>
+        <button onclick="saveData()" style="width:100%; background:var(--accent); border:none; padding:15px; border-radius:12px; font-weight:bold; color:#fff; cursor:pointer;">儲存變更</button>
+        <button onclick="closeModal()" style="width:100%; background:none; border:none; color:var(--sub); margin-top:10px; cursor:pointer;">取消</button>
     </div>
 </div>
 
-<button class="fab" onclick="openModal()">+</button>
+<button id="add-btn" style="position:fixed; bottom:25px; right:25px; width:60px; height:60px; border-radius:50%; background:var(--accent); border:none; font-size:30px; color:#fff; cursor:pointer; z-index:900; box-shadow:0 10px 30px rgba(0, 180, 216, 0.4);" onclick="openModal()">+</button>
+
+<div id="noti-panel" onclick="event.stopPropagation()">
+    <div style="padding:15px; font-weight:bold; border-bottom:1px solid var(--border);">最新動態</div>
+    <div id="noti-list" style="max-height:300px; overflow-y:auto;"></div>
+</div>
 
 <script>
-    const PRESET_TAGS = ["熱血", "冒險", "戀愛", "校園", "異世界", "奇幻", "推理", "搞笑", "治癒", "懸疑", "科幻", "美食"];
+    const DEFAULT_BANNER = "https://images.alphacoders.com/132/1329241.jpeg";
+    const PRESET_TAGS = ["熱血", "冒險", "戀愛", "異世界", "校園", "奇幻", "搞笑", "治癒", "懸疑", "推理", "科幻", "動作", "日常", "百合", "催淚", "恐怖", "運動", "戰爭", "機甲", "暗黑", "肉番", "戰鬥", "異能", "泡麵番", "原創", "改編", "美食", "音樂"];
     const firebaseConfig = {
         apiKey: "AIzaSyB_LCa3ZOmcALbxw5SFjx78DzDD3mopXV4",
         authDomain: "aniworld-e53fb.firebaseapp.com",
@@ -129,182 +156,186 @@
     
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    let animes = [], groupKey = "", currentPage = 'home', lastPage = 'home', selectedTags = [];
+    let groupKey = localStorage.getItem('ani_room_id'), animes = [], currentPage = 'home', selectedTags = [], searchQuery = "";
 
-    function generateID() {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        let result = '';
-        for (let i = 0; i < 8; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
-        return result;
-    }
+    function start() {
+        const savedTheme = localStorage.getItem('ani_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('theme-icon').innerText = savedTheme === 'dark' ? '🌙' : '☀️';
 
-    function createNewGroup() {
-        const newKey = generateID();
-        if(confirm("建立新房間：" + newKey)) {
-            localStorage.setItem('ani_room_id', newKey);
-            location.reload();
+        if(!groupKey) {
+            document.getElementById('room-modal').style.display = 'flex';
+            document.getElementById('main-view').style.display = 'none';
+            document.getElementById('add-btn').style.display = 'none';
+            return;
         }
-    }
 
-    function joinGroup() {
-        const key = document.getElementById('input-group-key').value.trim().toUpperCase();
-        if (key.length < 4) return alert("代碼錯誤");
-        localStorage.setItem('ani_room_id', key);
-        location.reload();
-    }
+        document.getElementById('room-display').innerText = groupKey;
+        const savedBanner = localStorage.getItem('ani_banner_' + groupKey);
+        const savedPos = localStorage.getItem('ani_banner_pos_' + groupKey) || '50%';
+        document.getElementById('banner-img').src = savedBanner || DEFAULT_BANNER;
+        document.getElementById('banner-img').style.objectPosition = `center ${savedPos}`;
 
-    function copyGroupKey() {
-        navigator.clipboard.writeText(groupKey);
-        alert("代碼 " + groupKey + " 已複製");
-    }
-
-    function logout() { localStorage.removeItem('ani_room_id'); location.reload(); }
-
-    function startSync() {
-        groupKey = localStorage.getItem('ani_room_id');
-        if (!groupKey) return;
-        document.getElementById('login-overlay').style.display = 'none';
-        db.ref('rooms/' + groupKey).on('value', (snapshot) => {
-            const data = snapshot.val();
-            animes = data ? Object.values(data) : [];
+        db.ref('rooms/'+groupKey+'/data').on('value', snap => {
+            animes = snap.val() ? Object.values(snap.val()) : [];
             renderContent();
         });
-    }
-
-    function saveAnime() {
-        const saveBtn = document.getElementById('save-btn');
-        const editIdInput = document.getElementById('edit-id').value;
-        const id = editIdInput ? editIdInput : Date.now().toString();
-        const title = document.getElementById('m-title').value.trim();
-        if(!title) return alert("請輸入名稱");
-
-        saveBtn.innerText = "同步中...";
-        const existing = animes.find(a => a.id.toString() === id.toString()) || {};
-        const data = {
-            id: id,
-            title: title,
-            img: document.getElementById('m-img').value.trim() || "",
-            year: document.getElementById('m-year').value.trim() || "2024",
-            tags: selectedTags,
-            links: document.getElementById('m-links').value.split('\n').filter(l => l.trim() !== ""),
-            currentEp: existing.currentEp || 0,
-            isFav: existing.isFav || false,
-            lastActionTime: existing.lastActionTime || Date.now()
-        };
-
-        db.ref('rooms/' + groupKey + '/' + id).set(data).then(() => {
-            saveBtn.innerText = "儲存並同步";
-            closeModal();
+        db.ref('rooms/'+groupKey+'/logs').limitToLast(15).on('value', snap => {
+            const v = snap.val();
+            if(v) {
+                const logs = Object.values(v).reverse();
+                document.getElementById('noti-list').innerHTML = logs.map(l => `<div style="padding:12px; border-bottom:1px solid var(--border); font-size:0.85rem;"><b>${l.msg || l.title}</b> ${l.ep ? '更新至第 '+l.ep+' 集' : ''}<br><small style="color:var(--sub)">${l.time}</small></div>`).join('');
+                document.getElementById('noti-dot').style.display = 'block';
+            }
         });
     }
 
-    function renderContent() {
-        const area = document.getElementById('display-content');
-        let list = [...animes];
-        let titleText = "首頁精選";
-        
-        if (currentPage === 'all') {
-            titleText = "所有動畫";
-            list = list.sort((a,b) => a.title.localeCompare(b.title, 'zh-Hant'));
-        } else if (currentPage === 'my') {
-            titleText = "我的收藏";
-            list = list.filter(a => a.isFav);
-        } else if (currentPage === 'history') {
-            titleText = "觀看紀錄";
-            list = list.filter(a => a.currentEp > 0).sort((a,b) => b.lastActionTime - a.lastActionTime);
-        } else {
-            list = list.sort((a,b) => b.lastActionTime - a.lastActionTime);
+    function uploadBanner(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataUrl = e.target.result;
+                document.getElementById('banner-img').src = dataUrl;
+                localStorage.setItem('ani_banner_' + groupKey, dataUrl);
+            };
+            reader.readAsDataURL(input.files[0]);
         }
+    }
 
-        area.innerHTML = `<h2 class="section-title">${titleText}</h2><div class="grid"></div>`;
+    function deleteBanner() {
+        if(confirm("確定恢復預設封面？")) {
+            localStorage.removeItem('ani_banner_' + groupKey);
+            localStorage.removeItem('ani_banner_pos_' + groupKey);
+            document.getElementById('banner-img').src = DEFAULT_BANNER;
+            document.getElementById('banner-img').style.objectPosition = 'center 50%';
+        }
+    }
+
+    function adjustBannerPos() {
+        const pos = prompt("請輸入偏移百分比 (0-100)：\n0 是最上方，100 是最下方", "50");
+        if(pos !== null) {
+            const validPos = `${pos}%`;
+            document.getElementById('banner-img').style.objectPosition = `center ${validPos}`;
+            localStorage.setItem('ani_banner_pos_' + groupKey, validPos);
+        }
+    }
+
+    function toggleTheme() {
+        const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('ani_theme', next);
+        document.getElementById('theme-icon').innerText = next === 'dark' ? '🌙' : '☀️';
+    }
+
+    const ys = document.getElementById('m-year');
+    for(let i=2026; i>=1990; i--) ys.innerHTML += `<option value="${i}">${i}</option>`;
+
+    function createRoom() {
+        const id = prompt("房號：")?.toUpperCase() || Math.random().toString(36).substr(2, 6).toUpperCase();
+        localStorage.setItem('ani_room_id', id); location.reload();
+    }
+    function joinRoom() {
+        const id = document.getElementById('join-input').value.trim().toUpperCase();
+        if(id) { localStorage.setItem('ani_room_id', id); location.reload(); }
+    }
+    function renderContent() {
+        const area = document.getElementById('display-area');
+        let list = [...animes];
+        let title = "最近更新";
+        if(currentPage === 'my') { list = list.filter(a => a.isFav); title = "我的收藏"; }
+        if(currentPage === 'history') { list = list.filter(a => a.lastEp).sort((a,b) => b.lastTime - a.lastTime); title = "觀看紀錄"; }
+        if(currentPage === 'all') title = "完整動畫庫";
+
+        area.innerHTML = `<h2 style="margin:20px 0; border-left:6px solid var(--accent); padding-left:15px; font-size:1.4rem;">${title}</h2><div class="grid"></div>`;
         const grid = area.querySelector('.grid');
-        
         list.forEach(a => {
             grid.innerHTML += `
-                <div class="card" onclick="openDetail('${a.id}')">
-                    <div class="img-container">
-                        <button style="position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.6);border:none;color:${a.isFav?'#ff4d4d':'#ccc'};border-radius:50%;width:32px;height:32px;cursor:pointer;z-index:10;" onclick="event.stopPropagation(); db.ref('rooms/'+groupKey+'/'+'${a.id}').update({isFav:${!a.isFav}})">❤</button>
-                        <img src="${a.img || 'https://via.placeholder.com/180x260'}">
-                    </div>
-                    <div class="card-info">
-                        <div class="card-title">${a.title}</div>
-                        <div class="card-ep">看到第 ${a.currentEp || 0} 集</div>
+                <div class="card">
+                    <div style="position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.6); width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; z-index:10; backdrop-filter:blur(5px);" onclick="event.stopPropagation(); toggleFav('${a.id}', ${!a.isFav})">${a.isFav ? '❤️' : '🤍'}</div>
+                    <div onclick="openDetail('${a.id}')">
+                        <img src="${a.img || 'https://via.placeholder.com/300x400'}">
+                        <div style="padding:15px;">
+                            <div style="font-weight:bold; height:2.8rem; overflow:hidden; display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical; font-size:1rem;">${a.title}</div>
+                            <div style="color:var(--sub); font-size:0.8rem; margin-top:5px;">${a.year} · ${a.tags ? a.tags[0] : '未分類'}</div>
+                        </div>
                     </div>
                 </div>`;
         });
     }
 
     function openDetail(id) {
-        const a = animes.find(i => i.id.toString() === id.toString());
-        if (!a) return;
-        currentPage = 'detail';
-        document.getElementById('main-page').style.display = 'none';
-        document.getElementById('detail-page').style.display = 'block';
-        document.getElementById('detail-content').innerHTML = `
-            <div style="display:flex; gap:20px; flex-wrap:wrap; background:#151515; padding:20px; border-radius:15px;">
-                <img src="${a.img}" style="width:140px; border-radius:10px; aspect-ratio:3/4; object-fit:cover;">
-                <div style="flex:1; min-width:200px;">
-                    <h1 style="margin:0; font-size:1.5rem;">${a.title}</h1>
-                    <p style="color:var(--accent); font-weight:bold; margin:10px 0;">${a.year} | ${a.tags ? a.tags.join('、') : '無標籤'}</p>
-                    <button class="btn" onclick="openModal('${a.id}')" style="background:#444;color:white;">編輯</button>
-                    <button class="btn" onclick="if(confirm('刪除？')){db.ref('rooms/'+groupKey+'/'+'${a.id}').remove(); showPage('home');}" style="background:#600;color:white;margin-left:5px">刪除</button>
-                </div>
-            </div>
-            <h2 class="section-title">集數列表</h2>
-            <div class="ep-list">${a.links ? a.links.map((l, i) => `<div class="ep-item ${i+1===a.currentEp?'current':''}" onclick="playEp('${a.id}',${i+1},'${l}')">${i+1}</div>`).join('') : '暫無連結'}</div>
-        `;
+        const a = animes.find(i => i.id == id);
+        document.getElementById('main-view').style.display = 'none';
+        document.getElementById('add-btn').style.display = 'none';
+        document.getElementById('detail-view').style.display = 'block';
+        window.scrollTo(0,0);
+        document.getElementById('detail-hero-area').innerHTML = `<div style="width:100%; height:450px; position:relative;"><img src="${a.img}" style="width:100%; height:100%; object-fit:cover; filter:brightness(0.4);"><div style="position:absolute; inset:0; background:linear-gradient(to bottom, transparent 20%, var(--bg) 100%);"></div></div>`;
+        document.getElementById('detail-poster-area').innerHTML = `<img src="${a.img}" style="width:200px; aspect-ratio:3/4; border-radius:24px; box-shadow:0 30px 60px rgba(0,0,0,0.6); border:1px solid var(--border);">`;
+        document.getElementById('detail-info-area').innerHTML = `<div style="font-size:2.4rem; font-weight:900; margin-bottom:10px;">${a.title}</div><div style="color:var(--accent); font-size:1.1rem; font-weight:600;">${a.year} • ${a.tags ? a.tags.join(' / ') : '一般'}</div>`;
+        const epArea = document.getElementById('ep-list-ui');
+        epArea.innerHTML = '';
+        (a.links || []).forEach((l, i) => {
+            epArea.innerHTML += `<div class="ep-box ${a.lastEp == i+1 ? 'active' : ''}" onclick="handleLink('${a.id}','${l}',${i+1},'${a.title.replace(/'/g, "\\'")}')">${i+1}</div>`;
+        });
+        document.getElementById('action-ui').innerHTML = `<button onclick="openModal('${a.id}')" style="background:var(--card); border:1px solid var(--border); color:var(--sub); padding:12px 35px; border-radius:30px; cursor:pointer; font-weight:bold;">編輯資料</button><button onclick="deleteAni('${a.id}')" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-weight:bold;">刪除動畫</button>`;
     }
 
-    function playEp(id, ep, url) {
-        db.ref('rooms/' + groupKey + '/' + id).update({ currentEp: ep, lastActionTime: Date.now() });
+    function closeDetail() { document.getElementById('main-view').style.display = 'block'; document.getElementById('add-btn').style.display = 'block'; document.getElementById('detail-view').style.display = 'none'; }
+    function deleteAni(id) { if(confirm("確定刪除？")) { db.ref('rooms/'+groupKey+'/data/'+id).remove(); closeDetail(); } }
+    function handleLink(id, url, ep, title) {
+        db.ref('rooms/'+groupKey+'/data/'+id).update({ lastEp: ep, lastTime: Date.now() });
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+        db.ref('rooms/'+groupKey+'/logs').push({ msg: "", title, ep, time: timeStr });
         window.open(url, '_blank');
-        openDetail(id);
     }
-
-    function showPage(page) {
-        lastPage = (currentPage === 'detail') ? lastPage : currentPage;
-        currentPage = page;
-        document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
-        if(document.getElementById('nav-'+page)) document.getElementById('nav-'+page).classList.add('active');
-        document.getElementById('main-page').style.display = (page==='detail'?'none':'block');
-        document.getElementById('detail-page').style.display = (page==='detail'?'block':'none');
-        renderContent();
-    }
-
     function openModal(id = null) {
-        document.getElementById('animeModal').style.display = 'flex';
+        document.getElementById('editModal').style.display = 'flex';
         if(id) {
-            const a = animes.find(i => i.id.toString() === id.toString());
+            const a = animes.find(i => i.id == id);
             document.getElementById('edit-id').value = a.id;
             document.getElementById('m-title').value = a.title;
             document.getElementById('m-img').value = a.img;
             document.getElementById('m-year').value = a.year;
-            document.getElementById('m-links').value = a.links ? a.links.join('\n') : "";
-            selectedTags = [...(a.tags || [])];
+            document.getElementById('m-links').value = (a.links || []).join('\n');
+            selectedTags = a.tags || [];
         } else {
-            document.getElementById('edit-id').value = "";
-            document.getElementById('m-title').value = "";
-            document.getElementById('m-img').value = "";
-            document.getElementById('m-year').value = "2024";
-            document.getElementById('m-links').value = "";
-            selectedTags = [];
+            document.getElementById('edit-id').value = ""; document.getElementById('m-title').value = ""; document.getElementById('m-links').value = ""; selectedTags = [];
         }
-        renderTagPool();
+        renderTags();
     }
-
-    function renderTagPool() {
-        const pool = document.getElementById('modal-tag-pool');
-        pool.innerHTML = PRESET_TAGS.map(t => `<div class="tag-choice ${selectedTags.includes(t)?'selected':''}" onclick="toggleTag('${t}')">${t}</div>`).join('');
+    function renderTags() {
+        document.getElementById('tag-pool-ui').innerHTML = PRESET_TAGS.map(t => `<div style="padding:6px 15px; background:${selectedTags.includes(t)?'var(--accent)':'var(--card)'}; color:${selectedTags.includes(t)?'#fff':'var(--sub)'}; border-radius:20px; font-size:0.8rem; cursor:pointer; border:1px solid var(--border);" onclick="toggleTag('${t}')">${t}</div>`).join('');
     }
-
     function toggleTag(t) {
-        if(selectedTags.includes(t)) selectedTags = selectedTags.filter(i => i !== t);
-        else selectedTags.push(t);
-        renderTagPool();
+        if(selectedTags.includes(t)) selectedTags = selectedTags.filter(i => i !== t); else selectedTags.push(t); renderTags();
+    }
+    function saveData() {
+        const id = document.getElementById('edit-id').value || Date.now().toString();
+        const title = document.getElementById('m-title').value;
+        const isNew = !document.getElementById('edit-id').value;
+        db.ref('rooms/'+groupKey+'/data/'+id).update({
+            id, title, img: document.getElementById('m-img').value,
+            year: document.getElementById('m-year').value,
+            tags: selectedTags, links: document.getElementById('m-links').value.split('\n').filter(l => l.trim()),
+            lastTime: Date.now()
+        });
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+        db.ref('rooms/'+groupKey+'/logs').push({ msg: isNew ? `✨ 新增了：${title}` : `📝 ${title} 更新`, time: timeStr });
+        closeModal();
+        if(document.getElementById('detail-view').style.display === 'block') openDetail(id);
     }
 
-    function closeModal() { document.getElementById('animeModal').style.display = 'none'; }
-    window.onload = startSync;
+    function copyRoom() { navigator.clipboard.writeText(groupKey); alert("房號已複製！"); }
+    function showPage(p) { currentPage = p; closeDetail(); document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active')); document.getElementById('nav-'+p).classList.add('active'); renderContent(); }
+    function toggleFav(id, status) { db.ref('rooms/'+groupKey+'/data/'+id).update({ isFav: status }); }
+    function toggleNoti() { document.getElementById('noti-panel').style.display = (document.getElementById('noti-panel').style.display === 'block' ? 'none' : 'block'); document.getElementById('noti-dot').style.display = 'none'; }
+    function closeModal() { document.getElementById('editModal').style.display = 'none'; }
+    function logout() { if(confirm("確定登出？")) { localStorage.removeItem('ani_room_id'); location.reload(); } }
+    function closeNoti() { document.getElementById('noti-panel').style.display = 'none'; }
+
+    start();
 </script>
 </body>
 </html>
