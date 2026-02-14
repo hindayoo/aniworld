@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>個人動畫瘋 - 同步備份版</title>
+    <title>個人動畫瘋 - 共享同步版</title>
     <style>
         :root { --bg: #0c0c0c; --card: #1c1c1c; --text: #ffffff; --accent: #00b4d8; --sub: #888; }
         body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding-bottom: 50px; }
@@ -13,27 +13,29 @@
         nav a.active { color: var(--accent); }
         .container { padding: 15px; max-width: 1400px; margin: auto; }
         .section-title { border-left: 6px solid var(--accent); padding-left: 12px; margin: 20px 0; font-size: 1.5rem; font-weight: bold; }
+        
+        /* 標籤雲 */
         .tag-pool { display: flex; flex-wrap: wrap; gap: 8px; background: #111; padding: 15px; border-radius: 8px; border: 1px solid #333; }
         .tag-choice { padding: 5px 12px; background: #333; border-radius: 20px; font-size: 0.9rem; cursor: pointer; border: 1px solid transparent; }
         .tag-choice.selected { background: var(--accent); color: white; border-color: white; }
+
+        /* 卡片設計 */
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         @media (min-width: 768px) { .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); } }
         .card { background: var(--card); border-radius: 8px; overflow: hidden; border: 1px solid #222; position: relative; cursor: pointer; }
         .card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; }
         .card-info { padding: 10px; }
         .card-title { font-size: 1rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
         .fav-btn { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.6); border: none; color: #888; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem; z-index: 5; }
         .fav-btn.active { color: #ff4d4d; }
-        .ep-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
-        @media (min-width: 768px) { .ep-list { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); } }
-        .ep-item { background: #252525; padding: 12px 5px; text-align: center; border-radius: 6px; cursor: pointer; border: 1px solid #333; }
-        .ep-item.current { border-color: var(--accent); color: var(--accent); }
+
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
         .modal-content { background: #222; padding: 25px; border-radius: 12px; width: 100%; max-width: 550px; max-height: 85vh; overflow-y: auto; }
         input, textarea { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #444; background: #111; color: white; box-sizing: border-box; }
+        
         #detail-page { display: none; }
-        .sync-btn { background: #333; color: #fff; border: 1px solid #555; padding: 6px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
-        .sync-btn:hover { background: #444; }
+        .share-btn { background: #444; color: white; border: none; padding: 8px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -41,17 +43,17 @@
 <nav>
     <div class="logo" onclick="showPage('home')">ANI-ME</div>
     <a onclick="showPage('home')" id="nav-home" class="active">首頁</a>
-    <a onclick="showPage('all')" id="nav-all">所有動畫</a>
-    <a onclick="showPage('my')" id="nav-my">我的動畫</a>
-    <a onclick="showPage('history')" id="nav-history">觀看紀錄</a>
-    <div style="margin-left: auto; display: flex; gap: 10px;">
-        <button class="sync-btn" onclick="handleSync()">同步資料</button>
-        <button onclick="openModal()" style="background:var(--accent); border:none; color:white; padding:6px 15px; border-radius:20px; font-weight:bold; cursor:pointer;">+ 新增</button>
+    <a onclick="showPage('all')" id="nav-all">所有</a>
+    <a onclick="showPage('my')" id="nav-my">收藏</a>
+    <a onclick="showPage('history')" id="nav-history">紀錄</a>
+    <div style="margin-left:auto; display:flex; gap:10px;">
+        <button class="share-btn" onclick="shareData()">同步/分享</button>
+        <button onclick="openModal()" style="background:var(--accent); border:none; color:white; padding:8px 15px; border-radius:20px; font-weight:bold; cursor:pointer;">+ 新增</button>
     </div>
 </nav>
 
 <div class="container" id="main-page">
-    <div id="filter-area" style="display:none; margin-bottom: 20px;"><div id="tag-filters" style="display:flex; gap:10px; overflow-x:auto; white-space:nowrap; padding-bottom:10px;"></div></div>
+    <div id="filter-area" style="display:none; margin-bottom: 20px;"><div id="tag-filters" style="display:flex; gap:10px; overflow-x:auto;"></div></div>
     <div id="display-content"></div>
 </div>
 
@@ -62,51 +64,53 @@
 
 <div class="modal" id="animeModal">
     <div class="modal-content">
-        <h3 id="modalTitle">新增動畫</h3>
+        <h3 id="modalTitle">編輯動畫作品</h3>
         <input type="hidden" id="edit-id">
         <input type="text" id="m-title" placeholder="作品名稱">
-        <input type="text" id="m-img" placeholder="封面連結">
-        <input type="text" id="m-year" placeholder="年份">
-        <label style="color:var(--sub); font-size:0.8rem;">選擇分類標籤</label>
+        <input type="text" id="m-img" placeholder="封面圖片 URL">
+        <input type="text" id="m-year" placeholder="年份 (如 2024)">
+        <label style="color:var(--sub); font-size:0.8rem;">標籤分類</label>
         <div class="tag-pool" id="modal-tag-pool"></div>
-        <textarea id="m-links" rows="5" placeholder="播放連結 (一行一個)"></textarea>
-        <button onclick="saveAnime()" style="width:100%; padding:15px; background:var(--accent); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">儲存</button>
+        <textarea id="m-links" rows="5" placeholder="播放連結 (一行一個集數)"></textarea>
+        <button onclick="saveAnime()" style="width:100%; padding:15px; background:var(--accent); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;">儲存作品</button>
         <button onclick="closeModal()" style="width:100%; margin-top:10px; background:none; color:var(--sub); border:none; cursor:pointer;">取消</button>
     </div>
 </div>
 
 <script>
     const PRESET_TAGS = ["熱血", "冒險", "戀愛", "校園", "異世界", "奇幻", "推理", "搞笑", "治癒", "懸疑", "科幻", "美食"];
-    let animes = JSON.parse(localStorage.getItem('ani_v8_data')) || [];
+    let animes = JSON.parse(localStorage.getItem('ani_share_data')) || [];
     let currentPage = 'home', lastPage = 'home', currentFilterTag = '全部', selectedTags = [];
 
-    // --- 同步功能 ---
-    function handleSync() {
-        const op = prompt("【資料同步系統】\n輸入 1：複製這台設備的資料代碼\n輸入 2：貼上代碼匯入資料 (會覆蓋現有清單)");
-        if (op === "1") {
+    // --- 分享與同步核心功能 ---
+    function shareData() {
+        const mode = prompt("【同步系統】\n1. 複製我的代碼 (把清單傳給朋友)\n2. 匯入朋友的代碼 (取得朋友的清單)");
+        if (mode === "1") {
             const code = btoa(encodeURIComponent(JSON.stringify(animes)));
-            const input = document.createElement("textarea");
-            document.body.appendChild(input);
-            input.value = code; input.select();
-            document.execCommand("copy");
-            document.body.removeChild(input);
-            alert("代碼已複製！請傳送到另一台設備貼上。");
-        } else if (op === "2") {
-            const code = prompt("請貼上同步代碼：");
-            if (code) {
+            const el = document.createElement('textarea');
+            el.value = code;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            alert("代碼已複製！請傳給你的朋友貼上。");
+        } else if (mode === "2") {
+            const inputCode = prompt("請貼上朋友提供的代碼：");
+            if (inputCode) {
                 try {
-                    const data = JSON.parse(decodeURIComponent(atob(code)));
-                    if (confirm("確定匯入？這會替換掉這台設備目前的動畫清單。")) {
-                        animes = data;
-                        localStorage.setItem('ani_v8_data', JSON.stringify(animes));
+                    const decoded = JSON.parse(decodeURIComponent(atob(inputCode)));
+                    if (confirm("匯入將會覆蓋你目前的清單，確定嗎？")) {
+                        animes = decoded;
+                        localStorage.setItem('ani_share_data', JSON.stringify(animes));
                         renderContent();
+                        alert("同步成功！");
                     }
-                } catch(e) { alert("無效的代碼，請重新複製。"); }
+                } catch(e) { alert("無效的代碼，請確認是否複製完整。"); }
             }
         }
     }
 
-    // --- 頁面邏輯 ---
+    // --- 其餘邏輯修復 ---
     function showPage(page) {
         lastPage = currentPage; currentPage = page;
         document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
@@ -115,6 +119,93 @@
         document.getElementById('detail-page').style.display = (page==='detail'?'block':'none');
         document.getElementById('filter-area').style.display = (page==='all'?'block':'none');
         renderContent();
+    }
+
+    function renderContent() {
+        const area = document.getElementById('display-content');
+        let list = [...animes];
+        let title = "最近更新";
+
+        if(currentPage === 'all') {
+            title = "所有作品";
+            if(currentFilterTag !== '全部') list = list.filter(a => a.tags.includes(currentFilterTag));
+            const activeTags = ['全部', ...new Set(animes.flatMap(a => a.tags))];
+            document.getElementById('tag-filters').innerHTML = activeTags.map(t => `<div class="tag-choice ${currentFilterTag===t?'selected':''}" onclick="currentFilterTag='${t}';renderContent()">${t}</div>`).join('');
+        } else if(currentPage === 'my') {
+            list = list.filter(a => a.isFav); title = "收藏清單";
+        } else if(currentPage === 'history') {
+            list = list.sort((a,b) => b.lastActionTime - a.lastActionTime); title = "觀看紀錄";
+        } else {
+            list = list.slice(-10).reverse();
+        }
+
+        area.innerHTML = `<h2 class="section-title">${title}</h2><div class="grid"></div>`;
+        const grid = area.querySelector('.grid');
+        if(list.length === 0) grid.innerHTML = `<p style="color:var(--sub); padding:20px;">目前沒有資料，請點擊右上方「+新增」或「同步/分享」</p>`;
+        
+        list.forEach(a => {
+            grid.innerHTML += `
+                <div class="card" onclick="openDetail(${a.id})">
+                    <button class="fav-btn ${a.isFav?'active':''}" onclick="event.stopPropagation(); toggleFav(${a.id})">❤</button>
+                    <img src="${a.img || 'https://via.placeholder.com/180x260?text=No+Image'}">
+                    <div class="card-info">
+                        <div class="card-title">${a.title}</div>
+                        <div style="font-size:0.8rem; color:var(--sub)">看到第 ${a.currentEp} 集 / 共 ${a.links.length} 集</div>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function saveAnime() {
+        const id = document.getElementById('edit-id').value;
+        const data = {
+            id: id ? parseInt(id) : Date.now(),
+            title: document.getElementById('m-title').value || "未命名",
+            img: document.getElementById('m-img').value || "",
+            year: document.getElementById('m-year').value || "2024",
+            tags: selectedTags,
+            links: document.getElementById('m-links').value.split('\n').filter(l => l.trim() !== ""),
+            currentEp: id ? animes.find(a => a.id == id).currentEp : 0,
+            isFav: id ? animes.find(a => a.id == id).isFav : false,
+            lastActionTime: Date.now()
+        };
+        if(id) animes[animes.findIndex(a => a.id == id)] = data; else animes.push(data);
+        localStorage.setItem('ani_share_data', JSON.stringify(animes));
+        closeModal(); renderContent();
+    }
+
+    function toggleFav(id) {
+        const idx = animes.findIndex(x => x.id === id);
+        animes[idx].isFav = !animes[idx].isFav;
+        localStorage.setItem('ani_share_data', JSON.stringify(animes));
+        renderContent();
+    }
+
+    function openDetail(id) {
+        const a = animes.find(i => i.id === id);
+        document.getElementById('detail-content').innerHTML = `
+            <div style="display:flex; gap:20px; flex-wrap:wrap; background:#151515; padding:20px; border-radius:15px;">
+                <img src="${a.img || 'https://via.placeholder.com/180x260?text=No+Image'}" style="width:150px; border-radius:10px;">
+                <div style="flex:1; min-width:250px;">
+                    <h1 style="margin:0;">${a.title}</h1>
+                    <p style="color:var(--accent); font-weight:bold;">${a.year} | ${a.tags.join(', ')}</p>
+                    <button onclick="openModal(${a.id})" style="background:#444; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">編輯作品</button>
+                    <button onclick="if(confirm('刪除？')){animes=animes.filter(x=>x.id!==${a.id}); localStorage.setItem('ani_share_data',JSON.stringify(animes)); showPage('home');}" style="background:#600; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; margin-left:10px;">刪除</button>
+                </div>
+            </div>
+            <h2 class="section-title">選擇集數</h2>
+            <div class="ep-list">${a.links.map((l, i) => `<div class="ep-item ${i+1===a.currentEp?'current':''}" onclick="playEp(${a.id},${i+1},'${l}')">${i+1}</div>`).join('')}</div>
+        `;
+        showPage('detail');
+    }
+
+    function playEp(id, ep, url) {
+        const idx = animes.findIndex(a => a.id === id);
+        animes[idx].currentEp = ep;
+        animes[idx].lastActionTime = Date.now();
+        localStorage.setItem('ani_share_data', JSON.stringify(animes));
+        window.open(url, '_blank');
+        openDetail(id);
     }
 
     function openModal(id = null) {
@@ -143,82 +234,6 @@
         if(selectedTags.includes(tag)) selectedTags = selectedTags.filter(t => t !== tag);
         else selectedTags.push(tag);
         el.classList.toggle('selected');
-    }
-
-    function saveAnime() {
-        const id = document.getElementById('edit-id').value;
-        const data = {
-            id: id ? parseInt(id) : Date.now(),
-            title: document.getElementById('m-title').value || "未命名",
-            img: document.getElementById('m-img').value || "",
-            year: document.getElementById('m-year').value || "2024",
-            tags: selectedTags,
-            links: document.getElementById('m-links').value.split('\n').filter(l => l.trim() !== ""),
-            currentEp: id ? animes.find(a => a.id == id).currentEp : 0,
-            isFav: id ? animes.find(a => a.id == id).isFav : false,
-            lastActionTime: id ? animes.find(a => a.id == id).lastActionTime : Date.now()
-        };
-        if(id) animes[animes.findIndex(a => a.id == id)] = data;
-        else animes.push(data);
-        localStorage.setItem('ani_v8_data', JSON.stringify(animes));
-        closeModal(); renderContent();
-    }
-
-    function renderContent() {
-        const area = document.getElementById('display-content');
-        let list = [...animes];
-        let title = "最近更新";
-        if(currentPage === 'all') {
-            title = "所有動畫";
-            if(currentFilterTag !== '全部') list = list.filter(a => a.tags.includes(currentFilterTag));
-            const activeTags = ['全部', ...new Set(animes.flatMap(a => a.tags))];
-            document.getElementById('tag-filters').innerHTML = activeTags.map(t => `<div class="tag-choice ${currentFilterTag===t?'selected':''}" onclick="currentFilterTag='${t}';renderContent()">${t}</div>`).join('');
-        } else if(currentPage === 'my') {
-            list = list.filter(a => a.isFav); title = "我的收藏";
-        } else if(currentPage === 'history') {
-            list = list.sort((a,b) => b.lastActionTime - a.lastActionTime); title = "觀看紀錄";
-        } else {
-            list = list.slice(-10).reverse();
-        }
-        area.innerHTML = `<h2 class="section-title">${title}</h2><div class="grid"></div>`;
-        const grid = area.querySelector('.grid');
-        list.forEach(a => {
-            grid.innerHTML += `<div class="card" onclick="openDetail(${a.id})"><button class="fav-btn ${a.isFav?'active':''}" onclick="event.stopPropagation(); toggleFav(${a.id})">❤</button><img src="${a.img || 'https://via.placeholder.com/180x260?text=No+Image'}"><div class="card-info"><div class="card-title">${a.title}</div><div style="font-size:0.8rem; color:var(--sub)">看到第 ${a.currentEp} 集 / 共 ${a.links.length} 集</div></div></div>`;
-        });
-    }
-
-    function toggleFav(id) {
-        const idx = animes.findIndex(x => x.id === id);
-        animes[idx].isFav = !animes[idx].isFav;
-        localStorage.setItem('ani_v8_data', JSON.stringify(animes));
-        renderContent();
-    }
-
-    function openDetail(id) {
-        const a = animes.find(i => i.id === id);
-        document.getElementById('detail-content').innerHTML = `
-            <div style="display:flex; gap:20px; flex-wrap:wrap; background:#151515; padding:20px; border-radius:15px;">
-                <img src="${a.img || 'https://via.placeholder.com/180x260?text=No+Image'}" style="width:150px; border-radius:10px;">
-                <div style="flex:1; min-width:250px;">
-                    <h1 style="margin:0;">${a.title}</h1>
-                    <p style="color:var(--accent); font-weight:bold;">${a.year} | ${a.tags.join(', ')}</p>
-                    <button onclick="openModal(${a.id})" style="background:#444; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">編輯作品</button>
-                    <button onclick="if(confirm('刪除？')){animes=animes.filter(x=>x.id!==${a.id}); localStorage.setItem('ani_v8_data',JSON.stringify(animes)); showPage('home');}" style="background:#600; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; margin-left:10px;">刪除</button>
-                </div>
-            </div>
-            <h2 class="section-title">選擇集數</h2>
-            <div class="ep-list">${a.links.map((l, i) => `<div class="ep-item ${i+1===a.currentEp?'current':''}" onclick="playEp(${a.id},${i+1},'${l}')">${i+1}</div>`).join('')}</div>
-        `;
-        showPage('detail');
-    }
-
-    function playEp(id, ep, url) {
-        const idx = animes.findIndex(a => a.id === id);
-        animes[idx].currentEp = ep;
-        animes[idx].lastActionTime = Date.now();
-        localStorage.setItem('ani_v8_data', JSON.stringify(animes));
-        window.open(url, '_blank');
-        openDetail(id);
     }
 
     function closeModal() { document.getElementById('animeModal').style.display = 'none'; }
