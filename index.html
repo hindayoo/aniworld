@@ -8,27 +8,61 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         :root { --bg: #0c0c0c; --card: #1c1c1c; --text: #ffffff; --accent: #00b4d8; --sub: #888; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding-bottom: 50px; }
+        body { background: var(--bg); color: var(--text); font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; padding-bottom: 80px; }
+        
+        /* 登入鎖定 */
         #login-overlay { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; align-items: center; justify-content: center; }
         .login-box { background: #1a1a1a; padding: 30px; border-radius: 15px; width: 85%; max-width: 350px; text-align: center; border: 1px solid #333; }
-        nav { background: #000; padding: 12px 20px; display: flex; gap: 15px; position: sticky; top: 0; z-index: 100; align-items: center; border-bottom: 1px solid #222; }
-        nav .logo { color: var(--accent); font-weight: 900; font-size: 1.5rem; cursor: pointer; margin-right: auto; }
-        nav a { color: #eee; text-decoration: none; font-size: 0.95rem; font-weight: bold; cursor: pointer; }
-        nav a.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+        
+        /* 導航欄修復 */
+        nav { background: #000; padding: 12px 15px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #222; overflow-x: auto; white-space: nowrap; }
+        nav .logo { color: var(--accent); font-weight: 900; font-size: 1.4rem; cursor: pointer; margin-right: 20px; flex-shrink: 0; }
+        .nav-links { display: flex; gap: 15px; flex-shrink: 0; }
+        .nav-links a { color: #aaa; text-decoration: none; font-size: 0.95rem; font-weight: bold; cursor: pointer; padding: 5px 2px; }
+        .nav-links a.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+        .nav-btns { margin-left: auto; display: flex; gap: 8px; padding-left: 15px; }
+
         .container { padding: 15px; max-width: 1400px; margin: auto; }
-        .section-title { border-left: 6px solid var(--accent); padding-left: 12px; margin: 20px 0; font-size: 1.5rem; font-weight: bold; }
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-        @media (min-width: 768px) { .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); } }
-        .card { background: var(--card); border-radius: 8px; overflow: hidden; border: 1px solid #222; position: relative; cursor: pointer; }
-        .card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; }
+        .section-title { border-left: 6px solid var(--accent); padding-left: 12px; margin: 20px 0; font-size: 1.3rem; font-weight: bold; }
+        
+        /* 網格系統 */
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        @media (min-width: 768px) { .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; } }
+        
+        /* 卡片與標題 - 比照動畫瘋不縮寫 */
+        .card { background: none; overflow: hidden; position: relative; cursor: pointer; transition: 0.2s; }
+        .card:hover img { transform: scale(1.05); }
+        .img-container { width: 100%; aspect-ratio: 3/4; overflow: hidden; border-radius: 8px; border: 1px solid #222; position: relative; }
+        .card img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
+        .card-info { padding: 8px 2px; }
+        .card-title { 
+            font-size: 0.95rem; 
+            line-height: 1.4; 
+            color: #fff; 
+            word-wrap: break-word; 
+            white-space: normal; 
+            display: block; /* 移除省略號限制，讓它自然換行 */
+        }
+        .card-ep { font-size: 0.8rem; color: var(--sub); margin-top: 4px; }
+
+        /* 標籤 */
+        .tag-pool { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+        .tag-choice { padding: 5px 12px; background: #333; border-radius: 20px; font-size: 0.75rem; cursor: pointer; color: #ccc; }
+        .tag-choice.selected { background: var(--accent); color: white; }
+
+        /* 集數 */
         .ep-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 10px; margin-top: 15px; }
-        .ep-item { background: #252525; color: #ccc; padding: 12px 5px; text-align: center; border-radius: 4px; cursor: pointer; border: 1px solid #333; }
+        .ep-item { background: #252525; color: #ccc; padding: 12px 5px; text-align: center; border-radius: 4px; cursor: pointer; border: 1px solid #333; font-weight: bold; }
         .ep-item.current { background: var(--accent); color: white; }
+
+        /* 彈窗 */
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
-        .modal-content { background: #222; padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+        .modal-content { background: #222; padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; }
         input, textarea { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #444; background: #111; color: white; box-sizing: border-box; }
-        .btn { border: none; padding: 10px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        
+        .btn { border: none; padding: 8px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; }
         .btn-accent { background: var(--accent); color: white; }
+        .fab { position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; border-radius: 50%; background: var(--accent); color: white; border: none; font-size: 30px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 99; }
     </style>
 </head>
 <body>
@@ -37,20 +71,22 @@
     <div class="login-box">
         <h2 style="color: var(--accent);">ANI-ME 共享</h2>
         <input type="text" id="input-group-key" placeholder="輸入 8 位共享代碼">
-        <button class="btn btn-accent" style="width: 100%; margin-top: 10px;" onclick="joinGroup()">進入房間</button>
-        <div style="margin: 20px 0; color: #555;">───── 或者 ─────</div>
-        <button class="btn" style="width: 100%; background: #333; color: white;" onclick="createNewGroup()">創建新的隨機群組</button>
+        <button class="btn btn-accent" style="width: 100%;" onclick="joinGroup()">進入房間</button>
+        <button class="btn" style="width: 100%; background: #333; color: white; margin-top: 10px;" onclick="createNewGroup()">創建隨機房間</button>
     </div>
 </div>
 
 <nav>
     <div class="logo" onclick="showPage('home')">ANI-ME</div>
-    <a onclick="showPage('home')" id="nav-home" class="active">首頁</a>
-    <a onclick="showPage('all')" id="nav-all">所有動畫</a>
-    <a onclick="showPage('my')" id="nav-my">我的收藏</a>
-    <div style="margin-left: 20px; display: flex; gap: 10px;">
-        <button class="btn btn-accent" onclick="copyGroupKey()">📋 複製此房間代碼</button>
-        <button class="btn" style="background:#333; color:white;" onclick="logout()">登出</button>
+    <div class="nav-links">
+        <a onclick="showPage('home')" id="nav-home" class="active">首頁</a>
+        <a onclick="showPage('all')" id="nav-all">所有動畫</a>
+        <a onclick="showPage('my')" id="nav-my">我的收藏</a>
+        <a onclick="showPage('history')" id="nav-history">觀看紀錄</a>
+    </div>
+    <div class="nav-btns">
+        <button class="btn btn-accent" style="font-size: 0.7rem;" onclick="copyGroupKey()">複製房間碼</button>
+        <button class="btn" style="background:#333; color:white; font-size: 0.7rem;" onclick="logout()">登出</button>
     </div>
 </nav>
 
@@ -59,31 +95,33 @@
 </div>
 
 <div class="container" id="detail-page" style="display:none;">
-    <button onclick="showPage(lastPage)" style="color:var(--accent); background:none; border:none; cursor:pointer; font-weight:bold;">← 返回</button>
+    <button onclick="showPage(lastPage)" style="color:var(--accent); background:none; border:none; cursor:pointer; font-weight:bold; margin-bottom:15px;">← 返回</button>
     <div id="detail-content"></div>
 </div>
 
 <div class="modal" id="animeModal">
     <div class="modal-content">
-        <h3>編輯動畫</h3>
+        <h3 id="modal-header-title">編輯動畫</h3>
         <input type="hidden" id="edit-id">
-        <input type="text" id="m-title" placeholder="作品名稱">
-        <input type="text" id="m-img" placeholder="封面網址">
+        <input type="text" id="m-title" placeholder="動畫名稱">
+        <input type="text" id="m-img" placeholder="圖片網址">
         <input type="text" id="m-year" placeholder="年份">
+        <div class="tag-pool" id="modal-tag-pool"></div>
         <textarea id="m-links" rows="5" placeholder="播放連結 (一集一行)"></textarea>
-        <button onclick="saveAnime()" class="btn btn-accent" style="width:100%;">儲存並同步</button>
-        <button onclick="closeModal()" style="width:100%; background:none; color:#888; border:none; margin-top:10px; cursor:pointer;">取消</button>
+        <button type="button" id="save-btn" onclick="saveAnime()" class="btn btn-accent" style="width:100%;">儲存並同步</button>
+        <button type="button" onclick="closeModal()" style="width:100%; background:none; color:#888; border:none; margin-top:10px;">取消</button>
     </div>
 </div>
 
-<button onclick="openModal()" style="position:fixed; bottom:20px; right:20px; width:60px; height:60px; border-radius:50%; background:var(--accent); color:white; border:none; font-size:30px; cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:99;">+</button>
+<button class="fab" onclick="openModal()">+</button>
 
 <script>
+    const PRESET_TAGS = ["熱血", "冒險", "戀愛", "校園", "異世界", "奇幻", "推理", "搞笑", "治癒", "懸疑", "科幻", "美食"];
     const firebaseConfig = {
         apiKey: "AIzaSyB_LCa3ZOmcALbxw5SFjx78DzDD3mopXV4",
         authDomain: "aniworld-e53fb.firebaseapp.com",
         projectId: "aniworld-e53fb",
-        databaseURL: "https://aniworld-e53fb-default-rtdb.firebaseio.com/",
+        databaseURL: "https://aniworld-e53fb-default-rtdb.asia-southeast1.firebasedatabase.app/",
         storageBucket: "aniworld-e53fb.firebasestorage.app",
         messagingSenderId: "436374917789",
         appId: "1:436374917789:web:11f19fe22e81763231fa74"
@@ -91,11 +129,10 @@
     
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    let animes = [], groupKey = "", currentPage = 'home', lastPage = 'home';
+    let animes = [], groupKey = "", currentPage = 'home', lastPage = 'home', selectedTags = [];
 
-    // 生成隨機 8 位代碼
     function generateID() {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 排除易混淆字母
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         let result = '';
         for (let i = 0; i < 8; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
         return result;
@@ -103,7 +140,7 @@
 
     function createNewGroup() {
         const newKey = generateID();
-        if(confirm("將建立新房間，代碼為：" + newKey + "\n請務必記下此代碼以分享給朋友。")) {
+        if(confirm("建立新房間：" + newKey)) {
             localStorage.setItem('ani_room_id', newKey);
             location.reload();
         }
@@ -111,14 +148,14 @@
 
     function joinGroup() {
         const key = document.getElementById('input-group-key').value.trim().toUpperCase();
-        if (key.length < 4) return alert("請輸入正確的代碼");
+        if (key.length < 4) return alert("代碼錯誤");
         localStorage.setItem('ani_room_id', key);
         location.reload();
     }
 
     function copyGroupKey() {
         navigator.clipboard.writeText(groupKey);
-        alert("房間代碼 " + groupKey + " 已複製！傳給朋友輸入即可同步。");
+        alert("代碼 " + groupKey + " 已複製");
     }
 
     function logout() { localStorage.removeItem('ani_room_id'); location.reload(); }
@@ -135,72 +172,99 @@
     }
 
     function saveAnime() {
-        const id = document.getElementById('edit-id').value || Date.now();
+        const saveBtn = document.getElementById('save-btn');
+        const editIdInput = document.getElementById('edit-id').value;
+        const id = editIdInput ? editIdInput : Date.now().toString();
+        const title = document.getElementById('m-title').value.trim();
+        if(!title) return alert("請輸入名稱");
+
+        saveBtn.innerText = "同步中...";
+        const existing = animes.find(a => a.id.toString() === id.toString()) || {};
         const data = {
-            id: parseInt(id),
-            title: document.getElementById('m-title').value || "未命名",
-            img: document.getElementById('m-img').value || "",
-            year: document.getElementById('m-year').value || "2024",
+            id: id,
+            title: title,
+            img: document.getElementById('m-img').value.trim() || "",
+            year: document.getElementById('m-year').value.trim() || "2024",
+            tags: selectedTags,
             links: document.getElementById('m-links').value.split('\n').filter(l => l.trim() !== ""),
-            currentEp: id ? (animes.find(a=>a.id==id)?.currentEp || 0) : 0,
-            isFav: id ? (animes.find(a=>a.id==id)?.isFav || false) : false,
-            lastActionTime: Date.now()
+            currentEp: existing.currentEp || 0,
+            isFav: existing.isFav || false,
+            lastActionTime: existing.lastActionTime || Date.now()
         };
-        db.ref('rooms/' + groupKey + '/' + data.id).update(data).then(() => closeModal());
+
+        db.ref('rooms/' + groupKey + '/' + id).set(data).then(() => {
+            saveBtn.innerText = "儲存並同步";
+            closeModal();
+        });
     }
 
     function renderContent() {
         const area = document.getElementById('display-content');
         let list = [...animes];
-        let title = "最近觀看";
-        if (currentPage === 'all') title = "所有動畫";
-        else if (currentPage === 'my') { list = list.filter(a => a.isFav); title = "收藏清單"; }
-        else { list = list.sort((a,b) => b.lastActionTime - a.lastActionTime); }
+        let titleText = "首頁精選";
+        
+        if (currentPage === 'all') {
+            titleText = "所有動畫";
+            list = list.sort((a,b) => a.title.localeCompare(b.title, 'zh-Hant'));
+        } else if (currentPage === 'my') {
+            titleText = "我的收藏";
+            list = list.filter(a => a.isFav);
+        } else if (currentPage === 'history') {
+            titleText = "觀看紀錄";
+            list = list.filter(a => a.currentEp > 0).sort((a,b) => b.lastActionTime - a.lastActionTime);
+        } else {
+            list = list.sort((a,b) => b.lastActionTime - a.lastActionTime);
+        }
 
-        area.innerHTML = `<h2 class="section-title">${title}</h2><div class="grid"></div>`;
+        area.innerHTML = `<h2 class="section-title">${titleText}</h2><div class="grid"></div>`;
         const grid = area.querySelector('.grid');
-        if(list.length === 0) grid.innerHTML = "<p style='color:#444'>房間空空的，點右下角 + 新增吧！</p>";
+        
         list.forEach(a => {
             grid.innerHTML += `
-                <div class="card" onclick="openDetail(${a.id})">
-                    <button style="position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.5);border:none;color:${a.isFav?'#ff4d4d':'#ccc'};border-radius:50%;width:30px;height:30px;cursor:pointer;" onclick="event.stopPropagation(); db.ref('rooms/'+groupKey+'/'+${a.id}).update({isFav:${!a.isFav}})">❤</button>
-                    <img src="${a.img || 'https://via.placeholder.com/180x260'}">
+                <div class="card" onclick="openDetail('${a.id}')">
+                    <div class="img-container">
+                        <button style="position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.6);border:none;color:${a.isFav?'#ff4d4d':'#ccc'};border-radius:50%;width:32px;height:32px;cursor:pointer;z-index:10;" onclick="event.stopPropagation(); db.ref('rooms/'+groupKey+'/'+'${a.id}').update({isFav:${!a.isFav}})">❤</button>
+                        <img src="${a.img || 'https://via.placeholder.com/180x260'}">
+                    </div>
                     <div class="card-info">
-                        <div style="font-weight:bold;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.title}</div>
-                        <div style="font-size:0.75rem;color:var(--sub);margin-top:4px;">看到第 ${a.currentEp || 0} 集</div>
+                        <div class="card-title">${a.title}</div>
+                        <div class="card-ep">看到第 ${a.currentEp || 0} 集</div>
                     </div>
                 </div>`;
         });
     }
 
     function openDetail(id) {
-        const a = animes.find(i => i.id === id);
-        if (!a) return showPage('home');
+        const a = animes.find(i => i.id.toString() === id.toString());
+        if (!a) return;
         currentPage = 'detail';
         document.getElementById('main-page').style.display = 'none';
         document.getElementById('detail-page').style.display = 'block';
         document.getElementById('detail-content').innerHTML = `
-            <div style="display:flex; gap:15px; background:#151515; padding:15px; border-radius:10px;">
-                <img src="${a.img}" style="width:120px; border-radius:5px;">
-                <div>
-                    <h2 style="margin:0">${a.title}</h2>
-                    <p style="color:var(--accent)">${a.year}</p>
-                    <button class="btn" onclick="openModal(${a.id})" style="background:#333;color:white;padding:5px 15px">編輯</button>
-                    <button class="btn" onclick="if(confirm('刪除？')){db.ref('rooms/'+groupKey+'/'+${a.id}).remove(); showPage('home');}" style="background:#400;color:white;padding:5px 15px;margin-left:5px">刪除</button>
+            <div style="display:flex; gap:20px; flex-wrap:wrap; background:#151515; padding:20px; border-radius:15px;">
+                <img src="${a.img}" style="width:140px; border-radius:10px; aspect-ratio:3/4; object-fit:cover;">
+                <div style="flex:1; min-width:200px;">
+                    <h1 style="margin:0; font-size:1.5rem;">${a.title}</h1>
+                    <p style="color:var(--accent); font-weight:bold; margin:10px 0;">${a.year} | ${a.tags ? a.tags.join('、') : '無標籤'}</p>
+                    <button class="btn" onclick="openModal('${a.id}')" style="background:#444;color:white;">編輯</button>
+                    <button class="btn" onclick="if(confirm('刪除？')){db.ref('rooms/'+groupKey+'/'+'${a.id}').remove(); showPage('home');}" style="background:#600;color:white;margin-left:5px">刪除</button>
                 </div>
             </div>
-            <div class="ep-list">${a.links.map((l, i) => `<div class="ep-item ${i+1===a.currentEp?'current':''}" onclick="playEp(${a.id},${i+1},'${l}')">${i+1}</div>`).join('')}</div>
+            <h2 class="section-title">集數列表</h2>
+            <div class="ep-list">${a.links ? a.links.map((l, i) => `<div class="ep-item ${i+1===a.currentEp?'current':''}" onclick="playEp('${a.id}',${i+1},'${l}')">${i+1}</div>`).join('') : '暫無連結'}</div>
         `;
     }
 
     function playEp(id, ep, url) {
         db.ref('rooms/' + groupKey + '/' + id).update({ currentEp: ep, lastActionTime: Date.now() });
         window.open(url, '_blank');
+        openDetail(id);
     }
 
     function showPage(page) {
-        lastPage = currentPage; currentPage = page;
-        document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+        lastPage = (currentPage === 'detail') ? lastPage : currentPage;
+        currentPage = page;
+        document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
         if(document.getElementById('nav-'+page)) document.getElementById('nav-'+page).classList.add('active');
         document.getElementById('main-page').style.display = (page==='detail'?'none':'block');
         document.getElementById('detail-page').style.display = (page==='detail'?'block':'none');
@@ -210,19 +274,33 @@
     function openModal(id = null) {
         document.getElementById('animeModal').style.display = 'flex';
         if(id) {
-            const a = animes.find(i => i.id === id);
+            const a = animes.find(i => i.id.toString() === id.toString());
             document.getElementById('edit-id').value = a.id;
             document.getElementById('m-title').value = a.title;
             document.getElementById('m-img').value = a.img;
             document.getElementById('m-year').value = a.year;
-            document.getElementById('m-links').value = a.links.join('\n');
+            document.getElementById('m-links').value = a.links ? a.links.join('\n') : "";
+            selectedTags = [...(a.tags || [])];
         } else {
             document.getElementById('edit-id').value = "";
             document.getElementById('m-title').value = "";
             document.getElementById('m-img').value = "";
-            document.getElementById('m-year').value = "";
+            document.getElementById('m-year').value = "2024";
             document.getElementById('m-links').value = "";
+            selectedTags = [];
         }
+        renderTagPool();
+    }
+
+    function renderTagPool() {
+        const pool = document.getElementById('modal-tag-pool');
+        pool.innerHTML = PRESET_TAGS.map(t => `<div class="tag-choice ${selectedTags.includes(t)?'selected':''}" onclick="toggleTag('${t}')">${t}</div>`).join('');
+    }
+
+    function toggleTag(t) {
+        if(selectedTags.includes(t)) selectedTags = selectedTags.filter(i => i !== t);
+        else selectedTags.push(t);
+        renderTagPool();
     }
 
     function closeModal() { document.getElementById('animeModal').style.display = 'none'; }
