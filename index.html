@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ANIWORLD | ULTIMATE ELITE V19</title>
+    <title>ANIWORLD | SYSTEM V21</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -15,7 +15,6 @@
            1. 全域變數與主題定義
            ========================================= */
         :root {
-            /* 顏色系統 */
             --accent: #00f2ff;
             --accent-pink: #ff00c1;
             --accent-glow: rgba(0, 242, 255, 0.4);
@@ -26,15 +25,8 @@
             --text-sub: #a0aec0;
             --border-color: rgba(255, 255, 255, 0.12);
             --card-surface: rgba(255, 255, 255, 0.06);
-            
-            /* 圓角定義 */
-            --radius-ui: 24px;      /* 常規 UI 圓角 */
-            --radius-btn: 50px;     /* 按鈕圓角 */
-            --radius-poster: 0px;   /* 封面直角 (巴哈式強制直角) */
-            
-            /* 動畫緩動 */
+            --radius-ui: 24px;
             --e-out: cubic-bezier(0.22, 1, 0.36, 1);
-            --e-inout: cubic-bezier(0.76, 0, 0.24, 1);
         }
 
         body.light-mode {
@@ -48,702 +40,351 @@
             --accent-glow: rgba(0, 242, 255, 0.2);
         }
 
-        /* =========================================
-           2. 核心佈局與捲軸優化
-           ========================================= */
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
-            margin: 0;
-            padding: 0;
-            background: var(--bg-dark);
-            color: var(--text-main);
-            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
-            overflow-x: hidden;
-            line-height: 1.6;
-            font-size: 18px;
+            margin: 0; padding: 0; background: var(--bg-dark); color: var(--text-main);
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif; overflow-x: hidden; line-height: 1.6; font-size: 18px;
         }
 
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--accent);
-        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
         /* =========================================
-           3. 導航欄設計 (Header)
+           2. 開機動畫
+           ========================================= */
+        #boot-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.8s ease-out;
+        }
+        .boot-loader {
+            width: 80px; height: 80px; border: 5px solid rgba(0, 242, 255, 0.2);
+            border-top: 5px solid var(--accent); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        .boot-text {
+            font-family: monospace; color: var(--accent); font-size: 1.2rem;
+            letter-spacing: 2px; animation: blink 1.5s infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        /* =========================================
+           3. 導航欄設計
            ========================================= */
         header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 95px;
-            background: var(--panel-bg);
-            backdrop-filter: blur(25px) saturate(180%);
-            z-index: 2000;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 4%;
-            border-bottom: 1px solid var(--border-color);
-            transition: all 0.4s var(--e-out);
+            position: fixed; top: 0; left: 0; width: 100%; height: 95px;
+            background: var(--panel-bg); backdrop-filter: blur(25px) saturate(180%);
+            z-index: 2000; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 4%; border-bottom: 1px solid var(--border-color); transition: all 0.4s var(--e-out);
         }
 
-        .logo-group {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
+        .logo-group { display: flex; align-items: center; gap: 20px; }
         .logo-text {
-            font-size: 2.5rem;
-            font-weight: 900;
-            letter-spacing: -3px;
+            font-size: 2.5rem; font-weight: 900; letter-spacing: -3px;
             background: linear-gradient(135deg, var(--accent), var(--accent-pink));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            cursor: pointer;
-            user-select: none;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            cursor: pointer; user-select: none;
         }
-
         .room-badge {
-            background: rgba(0, 242, 255, 0.08);
-            border: 1px solid var(--accent);
-            color: var(--accent);
-            padding: 6px 16px;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            font-weight: 800;
-            letter-spacing: 1px;
+            background: rgba(0, 242, 255, 0.08); border: 1px solid var(--accent); color: var(--accent);
+            padding: 6px 16px; border-radius: 50px; font-size: 0.8rem; font-weight: 800; letter-spacing: 1px;
         }
 
         .nav-menu {
-            display: flex;
-            background: rgba(0, 0, 0, 0.15);
-            padding: 6px;
-            border-radius: 50px;
-            border: 1px solid var(--border-color);
-            gap: 5px;
+            display: flex; background: rgba(0, 0, 0, 0.15); padding: 6px;
+            border-radius: 50px; border: 1px solid var(--border-color); gap: 5px;
         }
-
         .nav-link {
-            padding: 10px 24px;
-            border-radius: 40px;
-            color: var(--text-sub);
-            font-weight: 800;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: 0.3s var(--e-out);
+            padding: 10px 24px; border-radius: 40px; color: var(--text-sub);
+            font-weight: 800; font-size: 0.9rem; cursor: pointer; transition: 0.3s var(--e-out);
             border: 1px solid transparent;
         }
-
-        .nav-link:hover {
-            color: var(--text-main);
-        }
-
+        .nav-link:hover { color: var(--text-main); }
         .nav-link.active {
-            background: var(--accent);
-            color: #000;
-            box-shadow: 0 4px 15px var(--accent-glow);
+            background: var(--accent); color: #000; box-shadow: 0 4px 15px var(--accent-glow);
         }
 
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 25px;
-            font-size: 1.3rem;
-        }
+        .header-actions { display: flex; align-items: center; gap: 20px; font-size: 1.3rem; }
+        .action-icon { cursor: pointer; transition: 0.2s; color: var(--text-sub); }
+        .action-icon:hover { color: var(--accent); transform: scale(1.1); }
 
-        .action-icon {
-            cursor: pointer;
-            transition: 0.2s;
-            color: var(--text-sub);
+        .user-avatar-wrap { position: relative; width: 45px; height: 45px; cursor: pointer; }
+        .user-avatar {
+            width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+            border: 2px solid var(--accent); transition: 0.3s;
         }
-
-        .action-icon:hover {
-            color: var(--accent);
-            transform: scale(1.1);
-        }
+        .user-avatar:hover { box-shadow: 0 0 15px var(--accent-glow); }
 
         /* =========================================
-           4. 英雄區塊 (Hero / Banner)
+           4. 英雄區塊 & 搜尋功能
            ========================================= */
         .hero-viewport {
-            position: relative;
-            width: 100%;
-            height: 580px;
-            overflow: hidden;
-            background: #000;
-            margin-top: 0;
+            position: relative; width: 100%; height: 580px; overflow: hidden; background: #000; margin-top: 0;
         }
-
         #hero-media {
-            width: 100%;
-            height: auto;
-            min-height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            will-change: transform;
-            pointer-events: none;
+            width: 100%; height: auto; min-height: 100%; position: absolute;
+            top: 0; left: 0; will-change: transform; pointer-events: none;
         }
-
         .hero-mask {
-            position: absolute;
-            inset: 0;
+            position: absolute; inset: 0;
             background: linear-gradient(0deg, var(--bg-dark) 5%, rgba(5, 6, 15, 0.2) 50%, transparent 100%);
-            z-index: 5;
-            pointer-events: none;
+            z-index: 5; pointer-events: none;
         }
-
         .hero-content {
-            position: absolute;
-            bottom: 80px;
-            left: 6%;
-            z-index: 10;
-            pointer-events: none;
+            position: absolute; bottom: 100px; left: 6%; z-index: 10; pointer-events: none;
         }
-
         .hero-title {
-            font-size: 5.5rem;
-            font-weight: 900;
-            line-height: 0.85;
-            margin: 0;
-            letter-spacing: -5px;
-            text-transform: uppercase;
+            font-size: 5.5rem; font-weight: 900; line-height: 0.85; margin: 0;
+            letter-spacing: -5px; text-transform: uppercase;
         }
-
         .hero-subtitle {
-            font-size: 2.2rem;
-            font-weight: 400;
-            opacity: 0.7;
-            letter-spacing: 6px;
-            display: block;
-            margin-top: 10px;
+            font-size: 2.2rem; font-weight: 400; opacity: 0.7; letter-spacing: 6px;
+            display: block; margin-top: 10px;
         }
+        
+        /* 搜尋欄樣式 */
+        .search-container {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            z-index: 20; width: 90%; max-width: 600px;
+        }
+        .search-input {
+            width: 100%; padding: 15px 30px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); color: #fff; font-size: 1.1rem;
+            outline: none; transition: 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center;
+        }
+        .search-input:focus { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
 
-        /* 按鈕移至右側且縮小 */
         .hero-controls {
-            position: absolute;
-            bottom: 85px;
-            right: 5%;
-            display: flex;
-            gap: 12px;
-            z-index: 20;
+            position: absolute; bottom: 105px; right: 5%; display: flex; gap: 12px; z-index: 20;
         }
-
         .btn-mini {
-            padding: 10px 20px;
-            border-radius: 50px;
-            font-size: 0.85rem;
-            font-weight: 800;
-            cursor: pointer;
-            border: 1px solid var(--border-color);
-            background: rgba(0, 0, 0, 0.4);
-            color: #fff;
-            backdrop-filter: blur(10px);
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            padding: 10px 20px; border-radius: 50px; font-size: 0.85rem; font-weight: 800;
+            cursor: pointer; border: 1px solid var(--border-color); background: rgba(0, 0, 0, 0.4);
+            color: #fff; backdrop-filter: blur(10px); display: flex; align-items: center; gap: 8px;
             transition: 0.3s var(--e-out);
         }
-
         .btn-mini:hover {
-            background: var(--accent);
-            color: #000;
-            border-color: var(--accent);
-            transform: translateY(-3px);
+            background: var(--accent); color: #000; border-color: var(--accent); transform: translateY(-3px);
         }
-
-        .hero-viewport.dragging {
-            cursor: ns-resize;
-        }
+        .hero-viewport.dragging { cursor: ns-resize; }
 
         /* =========================================
-           5. 動畫網格系統 (Grid & Rectangular Cards)
+           5. 內容網格
            ========================================= */
-        main {
-            padding: 60px 5%;
-            background: var(--bg-canvas);
-        }
-
-        .filter-container {
-            margin-bottom: 50px;
-        }
-
-        .tag-wrap {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
+        main { padding: 40px 5%; background: var(--bg-canvas); }
+        .filter-container { margin-bottom: 40px; }
+        .tag-wrap { display: flex; gap: 12px; flex-wrap: wrap; }
         .tag-pill {
-            padding: 10px 24px;
-            border-radius: 50px;
-            background: var(--card-surface);
-            border: 1px solid var(--border-color);
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: var(--text-sub);
-            cursor: pointer;
-            transition: 0.3s var(--e-out);
+            padding: 10px 24px; border-radius: 50px; background: var(--card-surface);
+            border: 1px solid var(--border-color); font-size: 0.95rem; font-weight: 700;
+            color: var(--text-sub); cursor: pointer; transition: 0.3s var(--e-out);
         }
-
-        .tag-pill:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-
+        .tag-pill:hover { border-color: var(--accent); color: var(--accent); }
         .tag-pill.active {
-            background: var(--accent-pink);
-            color: #fff;
-            border-color: var(--accent-pink);
+            background: var(--accent-pink); color: #fff; border-color: var(--accent-pink);
             box-shadow: 0 8px 20px rgba(255, 0, 193, 0.3);
         }
 
         .ani-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 40px;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 40px;
         }
-
         .ani-node {
-            background: var(--card-surface);
-            border-radius: 18px; /* 卡片容器圓潤 */
-            overflow: hidden;
-            border: 1px solid var(--border-color);
-            transition: 0.4s var(--e-out);
-            position: relative;
-            cursor: pointer;
+            background: var(--card-surface); border-radius: 18px; overflow: hidden;
+            border: 1px solid var(--border-color); transition: 0.4s var(--e-out);
+            position: relative; cursor: pointer;
         }
-
         .ani-node:hover {
-            transform: translateY(-12px);
-            border-color: var(--accent);
+            transform: translateY(-12px); border-color: var(--accent);
             box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
-
-        /* 關鍵：直角封面 */
         .ani-poster {
-            width: 100%;
-            aspect-ratio: 3 / 4.2;
-            object-fit: cover;
-            border-radius: 0 !important; /* 強制直角 */
-            transition: 0.5s var(--e-out);
+            width: 100%; aspect-ratio: 3 / 4.2; object-fit: cover;
+            border-radius: 0 !important; transition: 0.5s var(--e-out);
         }
-
-        .ani-node:hover .ani-poster {
-            transform: scale(1.05);
-        }
-
-        .ani-meta {
-            padding: 22px;
+        .ani-node:hover .ani-poster { transform: scale(1.05); }
+        .ani-meta { padding: 22px; }
+        
+        .type-badge {
+            background: rgba(255, 255, 255, 0.1); padding: 2px 8px; border-radius: 4px;
+            font-size: 0.7rem; color: #fff; margin-right: 8px; vertical-align: middle;
         }
 
         .ani-label {
-            color: var(--accent);
-            font-weight: 900;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            color: var(--accent); font-weight: 900; font-size: 0.8rem;
+            text-transform: uppercase; letter-spacing: 1px;
         }
-
         .ani-name {
-            font-size: 1.25rem;
-            font-weight: 800;
-            margin-top: 8px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            color: var(--text-main);
+            font-size: 1.25rem; font-weight: 800; margin-top: 8px; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis; color: var(--text-main);
         }
-
         .fav-hit {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 42px;
-            height: 42px;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(10px);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-            opacity: 0;
-            transform: scale(0.8);
-            transition: 0.3s var(--e-out);
+            position: absolute; top: 15px; right: 15px; width: 42px; height: 42px;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; z-index: 10;
+            opacity: 0; transform: scale(0.8); transition: 0.3s var(--e-out);
         }
-
-        .ani-node:hover .fav-hit {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        .fav-hit.active {
-            opacity: 1;
-            transform: scale(1);
-            color: var(--accent-pink);
-        }
+        .ani-node:hover .fav-hit { opacity: 1; transform: scale(1); }
+        .fav-hit.active { opacity: 1; transform: scale(1); color: var(--accent-pink); }
 
         /* =========================================
-           6. 聊天室與通知組件 (Widgets)
+           6. 聊天室與側邊欄
            ========================================= */
         .side-panel {
-            position: fixed;
-            width: 400px;
-            height: 550px;
-            background: var(--panel-bg);
-            border-radius: 35px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
-            z-index: 3000;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            transition: 0.5s var(--e-out);
+            position: fixed; width: 400px; height: 600px; background: var(--panel-bg);
+            border-radius: 35px; border: 1px solid var(--border-color);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6); z-index: 3000;
+            display: flex; flex-direction: column; overflow: hidden; transition: 0.5s var(--e-out);
         }
-
         #notice-hub { top: 110px; right: 30px; transform: translateX(500px); }
         #chat-hub { bottom: 30px; right: 30px; transform: translateY(700px); }
-
-        .side-panel.open {
-            transform: translate(0, 0) !important;
-        }
+        .side-panel.open { transform: translate(0, 0) !important; }
 
         .panel-head {
-            padding: 25px 30px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 20px 30px; border-bottom: 1px solid var(--border-color);
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.2);
         }
-
         .panel-head h3 { margin: 0; font-weight: 900; letter-spacing: 1px; }
 
         .chat-body {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+            flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
         }
-
         .msg-bubble {
-            padding: 14px 20px;
-            border-radius: 22px;
-            font-size: 0.95rem;
-            max-width: 85%;
-            word-break: break-all;
-            line-height: 1.5;
-            position: relative;
+            padding: 12px 18px; border-radius: 18px; font-size: 0.95rem;
+            max-width: 80%; word-break: break-all; line-height: 1.5; position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-
+        .msg-bubble .sender {
+            font-size: 0.75rem; opacity: 0.7; margin-bottom: 4px; font-weight: 700; display: block;
+        }
         .msg-bubble.self {
-            background: var(--accent);
-            color: #000;
-            align-self: flex-end;
-            border-bottom-right-radius: 4px;
-            font-weight: 600;
+            background: linear-gradient(135deg, var(--accent), #00c3ff);
+            color: #000; align-self: flex-end; border-bottom-right-radius: 4px;
         }
-
         .msg-bubble.peer {
-            background: var(--card-surface);
-            color: var(--text-main);
-            align-self: flex-start;
-            border-bottom-left-radius: 4px;
-            border: 1px solid var(--border-color);
+            background: var(--card-surface); color: var(--text-main); align-self: flex-start;
+            border-bottom-left-radius: 4px; border: 1px solid var(--border-color);
         }
 
         .chat-footer {
-            padding: 20px;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            gap: 10px;
-        }
-
-        .input-dark {
-            flex: 1;
+            padding: 15px 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px;
             background: rgba(0,0,0,0.2);
-            border: 1px solid var(--border-color);
-            padding: 12px 20px;
-            border-radius: 15px;
-            color: #fff;
-            outline: none;
+        }
+        .input-dark {
+            flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color);
+            padding: 12px 20px; border-radius: 15px; color: #fff; outline: none;
         }
 
         /* =========================================
-           7. 模態視窗與編輯介面 (Modals)
+           7. 模態視窗與編輯器 (空間優化)
            ========================================= */
         .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.92);
-            z-index: 5000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(20px);
-            padding: 20px;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 5000;
+            display: none; align-items: center; justify-content: center;
+            backdrop-filter: blur(20px); padding: 20px;
         }
-
         .modal-card {
-            width: 100%;
-            max-width: 1300px;
-            height: 88vh;
-            background: var(--bg-dark);
-            border-radius: 40px;
-            border: 1px solid var(--border-color);
-            display: flex;
-            overflow: hidden;
-            animation: modalPop 0.5s var(--e-out);
+            width: 100%; max-width: 1300px; height: 88vh; background: var(--bg-dark);
+            border-radius: 40px; border: 1px solid var(--border-color); display: flex;
+            overflow: hidden; animation: modalPop 0.5s var(--e-out);
         }
-
         @keyframes modalPop {
             from { transform: scale(0.9) translateY(30px); opacity: 0; }
             to { transform: scale(1) translateY(0); opacity: 1; }
         }
-
         .modal-visual {
-            flex: 1.3;
-            background: #000;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            flex: 1.3; background: #000; position: relative; display: flex; align-items: center; justify-content: center;
         }
-
         .modal-poster {
-            max-width: 85%;
-            max-height: 85%;
-            object-fit: contain;
-            z-index: 5;
-            border-radius: 0 !important; /* 強制直角封面 */
-            box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+            max-width: 85%; max-height: 85%; object-fit: contain; z-index: 5;
+            border-radius: 0 !important; box-shadow: 0 30px 60px rgba(0,0,0,0.8);
         }
-
         .modal-bg-blur {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.3;
-            filter: blur(40px);
+            position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.3; filter: blur(40px);
         }
-
         .modal-content {
-            flex: 1;
-            padding: 60px;
-            overflow-y: auto;
-            background: var(--bg-dark);
+            flex: 1; padding: 50px; overflow-y: auto; background: var(--bg-dark);
         }
-
         .ep-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
-            gap: 30px;
-            margin-top: 12px;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+            gap: 30px; margin-top: 12px;
         }
-
         .ep-btn {
-            background: var(--card-surface);
-            border: 1px solid var(--border-color);
-            padding: 12px;
-            text-align: center;
-            border-radius: 14px;
-            cursor: pointer;
-            font-weight: 800;
-            transition: 0.2s;
+            background: var(--card-surface); border: 1px solid var(--border-color);
+            padding: 12px; text-align: center; border-radius: 14px; cursor: pointer;
+            font-weight: 800; transition: 0.2s;
         }
-
         .ep-btn:hover, .ep-btn.active {
-            background: var(--accent);
-            color: #000;
-            border-color: var(--accent);
+            background: var(--accent); color: #000; border-color: var(--accent);
         }
 
-        /* =========================================
-           8. 懸浮按鈕 (FAB)
-           ========================================= */
+        /* 編輯器優化 CSS */
+        .editor-container {
+            display: flex; flex-direction: column; gap: 15px; /* 增加間距 */
+        }
+        .editor-row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+        }
+        .editor-label {
+            display: block; margin-bottom: 6px; font-weight: 700; color: var(--text-sub); font-size: 0.9rem;
+        }
+        .manual-tag-input {
+            display: flex; gap: 10px; margin-bottom: 10px;
+        }
+
+        /* 響應式調整 */
+        @media (max-width: 1024px) {
+            .modal-card { flex-direction: column; height: 95vh; width: 96%; max-width: 600px; }
+            .modal-visual { height: 250px; }
+            .modal-content { padding: 25px 20px; }
+            .hero-title { font-size: 1.8rem; }
+            .side-panel { width: 92%; right: 4%; }
+            #ed-tag-opts { flex-wrap: wrap; gap: 10px; max-height: 220px; }
+            .editor-row { grid-template-columns: 1fr; gap: 10px; }
+        }
+
+        /* FABs */
         .fab-trigger {
-            position: fixed;
-            bottom: 40px;
-            right: 130px;
-            width: 60px;
-            height: 60px;
+            position: fixed; bottom: 40px; right: 130px; width: 60px; height: 60px;
             background: linear-gradient(135deg, var(--accent), var(--accent-pink));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            color: #fff;
-            cursor: pointer;
-            z-index: 2500;
-            box-shadow: 0 10px 30px rgba(0, 242, 255, 0.4);
-            transition: 0.4s var(--e-out);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; color: #fff; cursor: pointer; z-index: 2500;
+            box-shadow: 0 10px 30px rgba(0, 242, 255, 0.4); transition: 0.4s var(--e-out);
         }
-
-        .fab-trigger:hover {
-            transform: rotate(90deg) scale(1.1);
-        }
-
+        .fab-trigger:hover { transform: rotate(90deg) scale(1.1); }
         .chat-fab {
-            position: fixed;
-            bottom: 40px;
-            right: 40px;
-            width: 60px;
-            height: 60px;
-            background: var(--accent);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.8rem;
-            color: #000;
-            cursor: pointer;
-            z-index: 2500;
-            box-shadow: 0 10px 30px var(--accent-glow);
+            position: fixed; bottom: 40px; right: 40px; width: 60px; height: 60px;
+            background: var(--accent); border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; font-size: 1.8rem; color: #000; cursor: pointer;
+            z-index: 2500; box-shadow: 0 10px 30px var(--accent-glow);
         }
 
-        /* =========================================
-           9. 響應式調整
-           ========================================= */
-        .modal-card {
-    max-width: 750px !important;  /* 縮小寬度，不讓它橫向太寬 */
-    width: 75%;
-    height: 75vh !important;     /* 縱向拉長，佔據更多垂直空間 */
-    display: flex;
-    flex-direction: column;
-}
-
-/* 2. 內容區域：縮小文字，增加行間距 */
-.modal-content, .ed-body {
-    padding: 40px 60px !important;
-}
-
-/* 針對輸入框與文字的精細調整 */
-.input-dark, .ed-textarea-v19, select.input-dark {
-    font-size: 0.9rem !important;    /* 文字縮小一點 */
-    padding: 12px 15px !important;   /* 縮減內距，讓控制項看起來更精緻 */
-    line-height: 1.5 !important;     /* 增加行高 */
-    letter-spacing: 0.5px;           /* 增加字距，減少擠壓感 */
-}
-
-/* 標題文字縮小並變淡，減少視覺重量 */
-.input-wrap label, .ed-field label {
-    font-size: 0.85rem !important;
-    font-weight: 600;
-    opacity: 0.7;                   /* 降低亮度，讓視覺焦點在輸入內容上 */
-    margin-bottom: 10px;
-}
-
-/* 3. 你要求的 1024px 以下覆蓋代碼 */
-@media (max-width: 1024px) {
-    .modal-card { 
-        flex-direction: column; 
-        height: 95vh;               /* 手機端保持高度 */
-        width: 96%;                 
-        max-width: 600px;           /* 限制手機端最大寬度，強制縱向感 */
-    }
-
-    .modal-visual { 
-        height: 250px;              /* 縮短圖片區，讓文字區變長 */
-    }
-
-    .modal-content {
-        padding: 25px 20px;         /* 稍微收緊，讓內容垂直延伸 */
-    }
-
-    .hero-title { 
-        font-size: 1.8rem;          /* 標題縮小，不要佔滿螢幕 */
-    }
-
-    /* 讓編輯器內的欄位強制單欄排列，並拉開垂直距離 */
-    .ed-row, .modal-editor-content, .ed-body {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 25px !important;       /* 增加每個欄位之間的垂直間距 */
-    }
-
-    .side-panel { 
-        width: 92%; 
-        right: 4%; 
-    }
-}
-/* =========================================
-   針對分類標籤與集數連結的專門覆蓋
-   ========================================= */
-
-/* 1. 分類標籤區：讓方格變大、不擁擠 */
-#ed-tag-opts {
-    display: flex !important;
-    flex-wrap: wrap !important;     /* 自動換行 */
-    gap: 10px !important;           /* 方格間距拉開 */
-    padding: 15px !important;
-    background: rgba(255, 255, 255, 0.05) !important; /* 淡淡的底色區分感 */
-    border-radius: 12px !important;
-    max-height: 320px !important;   /* 給標籤區更多縱向伸展空間 */
-    overflow-y: auto !important;
-}
-
-/* 讓裡面的標籤按鈕（方格）變大一點 */
-#ed-tag-opts div, .tag-chip {
-    padding: 10px 15px !important;  /* 增加內距，方格就變大了 */
-    background: rgba(0, 0, 0, 0.3) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 8px !important;
-    font-size: 1.0rem !important;   /* 標籤文字稍微大一點點，方便點擊 */
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-/* 2. 集數連結區：縮小方格高度，使其不顯得突兀 */
-#ed-links {
-    height: 180px !important;       /* 鎖定高度，不讓它佔滿畫面 */
-    min-height: 150px !important;
-    max-height: 250px !important;
-    padding: 15px !important;
-    font-family: 'Consolas', 'Monaco', monospace !important; /* 代碼感字體 */
-    font-size: 0.85rem !important;  /* 內部文字縮小，對應你的需求 */
-    background: rgba(0, 0, 0, 0.2) !important;
-    border: 1px solid var(--border-color) !important;
-    line-height: 1.6 !important;
-    resize: none !important;        /* 關閉手動縮放，保持介面整潔 */
-}
-
-/* 3. 在手機端 (1024px以下) 稍微微調標籤區，避免太擠 */
-@media (max-width: 1024px) {
-    #ed-tag-opts {
-        padding: 15px !important;
-        gap: 8px !important;
-        max-height: 220px !important; /* 手機端高度稍微收斂 */
-    }
-    
-    #ed-tag-opts div, .tag-chip {
-        padding: 8px 14px !important;
-        font-size: 0.8rem !important;
-    }
-}
+        /* 標籤區與連結區優化 */
+        #ed-tag-opts {
+            display: flex; flex-wrap: wrap; gap: 10px; padding: 15px;
+            background: rgba(255, 255, 255, 0.05); border-radius: 12px;
+            max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color);
+        }
+        #ed-tag-opts div {
+            padding: 6px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color);
+            border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.85rem;
+        }
+        #ed-links {
+            height: 150px; font-family: monospace; font-size: 0.85rem;
+            background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); resize: none;
         }
     </style>
 </head>
 <body onmouseup="Banner.endDrag()" onmouseleave="Banner.endDrag()">
+
+<div id="boot-screen">
+    <div class="boot-loader"></div>
+    <div class="boot-text">SYSTEM INITIALIZING...</div>
+</div>
 
 <header id="main-header">
     <div class="logo-group">
@@ -753,7 +394,8 @@
     
     <nav class="nav-menu">
         <div class="nav-link active" id="nav-home" onclick="App.setTab('home')">首頁</div>
-        <div class="nav-link" id="nav-all" onclick="App.setTab('all')">動畫庫</div>
+        <div class="nav-link" id="nav-anime" onclick="App.setTab('anime')">動畫庫</div>
+        <div class="nav-link" id="nav-manga" onclick="App.setTab('manga')">漫畫庫</div>
         <div class="nav-link" id="nav-fav" onclick="App.setTab('fav')">我的收藏</div>
         <div class="nav-link" id="nav-hist" onclick="App.setTab('hist')">觀看紀錄</div>
     </nav>
@@ -761,6 +403,12 @@
     <div class="header-actions">
         <i class="fa-solid fa-moon action-icon" onclick="UI.toggleTheme()"></i>
         <i class="fa-solid fa-bell action-icon" onclick="UI.togglePanel('notice-hub')"></i>
+        
+        <div class="user-avatar-wrap" onclick="UI.triggerAvatarUpload()">
+            <img id="current-avatar" class="user-avatar" src="https://via.placeholder.com/150" alt="Avatar">
+        </div>
+        <input type="file" id="avatar-upload" hidden accept="image/*" onchange="App.handleAvatarUpload(this)">
+        
         <i class="fa-solid fa-right-from-bracket action-icon" style="color:#ff4444;" onclick="App.logout()"></i>
     </div>
 </header>
@@ -769,8 +417,13 @@
     <img id="hero-media" src="https://images.alphacoders.com/133/1339031.png">
     <div class="hero-mask"></div>
     <div class="hero-content">
-        <h1 class="hero-title">ANIWORLD<br><span class="hero-subtitle">V19 SUPREME</span></h1>
+        <h1 class="hero-title">ANIWORLD<br><span class="hero-subtitle">V21 SYSTEM</span></h1>
     </div>
+    
+    <div class="search-container">
+        <input type="text" class="search-input" placeholder="搜尋作品名稱..." oninput="App.handleSearch(this.value)">
+    </div>
+
     <div class="hero-controls">
         <button class="btn-mini" onclick="UI.triggerUpload()"><i class="fa-solid fa-camera"></i> 封面更換</button>
         <button class="btn-mini" id="drag-btn" onclick="Banner.toggleDrag()"><i class="fa-solid fa-arrows-up-down"></i> 位置調整</button>
@@ -780,12 +433,10 @@
 
 <main>
     <div class="filter-container">
-        <div class="tag-wrap" id="tag-cloud">
-            </div>
+        <div class="tag-wrap" id="tag-cloud"></div>
     </div>
 
-    <div class="ani-grid" id="main-grid">
-        </div>
+    <div class="ani-grid" id="main-grid"></div>
 </main>
 
 <div id="notice-hub" class="side-panel">
@@ -835,37 +486,62 @@
 
 <div id="modal-editor" class="modal-overlay" onclick="if(event.target==this) UI.closeModals()">
     <div class="modal-card" style="max-width:900px; height:auto; flex-direction:column; padding:50px;">
-        <h2 id="ed-header" style="margin:0 0 35px 0; font-size:2.2rem; font-weight:900;">數據維護中心</h2>
+        <h2 id="ed-header" style="margin:0 0 30px 0; font-size:2rem; font-weight:900;">數據維護中心</h2>
         <input type="hidden" id="ed-id">
         
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
-            <div class="input-group">
-                <label style="display:block; margin-bottom:8px; font-weight:800; opacity:0.7;">作品名稱</label>
-                <input type="text" id="ed-title" class="input-dark" style="width:100%;">
+        <div class="editor-container">
+            <div class="editor-row">
+                <div>
+                    <label class="editor-label">作品名稱</label>
+                    <input type="text" id="ed-title" class="input-dark" style="width:100%;">
+                </div>
+                <div>
+                    <label class="editor-label">封面連結 (URL)</label>
+                    <input type="text" id="ed-img" class="input-dark" style="width:100%;">
+                </div>
             </div>
-            <div class="input-group">
-                <label style="display:block; margin-bottom:8px; font-weight:800; opacity:0.7;">封面連結 (URL)</label>
-                <input type="text" id="ed-img" class="input-dark" style="width:100%;">
+
+            <div class="editor-row" style="grid-template-columns: 1fr 1fr 1fr;">
+                <div>
+                    <label class="editor-label">類型</label>
+                    <select id="ed-type" class="input-dark" style="width:100%;" onchange="UI.toggleDateFields()">
+                        <option value="anime">動畫 (Anime)</option>
+                        <option value="manga">漫畫 (Manga)</option>
+                    </select>
+                </div>
+                <div id="group-year">
+                    <label class="editor-label">年份</label>
+                    <select id="ed-year" class="input-dark" style="width:100%;"></select>
+                </div>
+                <div id="group-month">
+                    <label class="editor-label">月份</label>
+                    <select id="ed-month" class="input-dark" style="width:100%;"></select>
+                </div>
             </div>
-        </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
-            <select id="ed-year" class="input-dark"></select>
-            <select id="ed-month" class="input-dark"></select>
-        </div>
+            <div>
+                <label class="editor-label">更新週期</label>
+                <div id="ed-day-opts" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;"></div>
+            </div>
 
-        <label style="display:block; margin-bottom:12px; font-weight:800; opacity:0.7;">更新週期</label>
-        <div id="ed-day-opts" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:25px;"></div>
+            <div>
+                <label class="editor-label">分類標籤</label>
+                <div class="manual-tag-input">
+                    <input type="text" id="manual-tag" class="input-dark" placeholder="輸入自定義標籤...">
+                    <button class="btn-mini" style="width:auto;" onclick="UI.addManualTag()">新增</button>
+                </div>
+                <div id="ed-tag-opts"></div>
+            </div>
 
-        <label style="display:block; margin-bottom:12px; font-weight:800; opacity:0.7;">分類標籤</label>
-        <div id="ed-tag-opts" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:25px; max-height:160px; overflow-y:auto; border:1px solid var(--border-color); padding:15px; border-radius:15px;"></div>
+            <div>
+                <label class="editor-label">集數數據 (格式：第01集|URL)</label>
+                <textarea id="ed-links" class="input-dark" style="width:100%;"></textarea>
+            </div>
 
-        <label style="display:block; margin-bottom:12px; font-weight:800; opacity:0.7;">集數數據 (格式：第01集|URL)</label>
-        <textarea id="ed-links" rows="5" class="input-dark" style="width:100%; margin-bottom:40px; resize:none;"></textarea>
-
-        <div style="display:flex; gap:20px;">
-            <button class="btn-mini" style="flex:2; background:var(--accent); color:#000; border:none; padding:18px; font-size:1.1rem;" onclick="App.saveData()">確認儲存</button>
-            <button id="ed-del-btn" class="btn-mini" style="flex:1; background:#ff4444; border:none; padding:18px;" onclick="App.deleteData()">移除作品</button>
+            <div style="display:flex; gap:20px; margin-top:10px;">
+                <button class="btn-mini" style="flex:2; background:var(--accent); color:#000; border:none; padding:18px; font-size:1.1rem;" onclick="App.saveData()">確認儲存</button>
+                <button id="ed-del-btn" class="btn-mini" style="flex:1; background:#ff4444; border:none; padding:18px;" onclick="App.deleteData()">移除作品</button>
+            </div>
         </div>
     </div>
 </div>
@@ -873,11 +549,10 @@
 <script>
 /**
  * =========================================
- * ANIWORLD ELITE V19 - Core Logic
+ * ANIWORLD ELITE V21 - Core Logic
  * =========================================
  */
 
-// 1. 初始化 Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyB_LCa3ZOmcALbxw5SFjx78DzDD3mopXV4",
     databaseURL: "https://aniworld-e53fb-default-rtdb.asia-southeast1.firebasedatabase.app/"
@@ -885,32 +560,40 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-// 2. 全域常量
 const CONSTANTS = {
     WEEK_DAYS: ["週一", "週二", "週三", "週四", "週五", "週六", "週日", "完結"],
     TAG_POOL: ["熱血", "冒險", "校園", "戀愛", "異世界", "奇幻", "日常", "懸疑", "百合", "耽美", "戰鬥", "美食", "機甲", "治癒", "致鬱", "後宮", "逆後宮", "肉番", "泡麵番", "劇場版", "運動", "智鬥", "勵志", "科幻", "推理", "特攝", "搞笑", "溫馨", "暗黑", "魔法", "偶像", "音樂", "歷史", "吸血鬼", "獸人", "卡牌", "驚悚", "恐怖"].sort(),
     STORAGE_KEYS: {
-        ROOM: 'ani_v19_room',
-        USER: 'ani_v19_user',
-        BANNER_POS: 'ani_v19_pos_',
-        BANNER_IMG: 'ani_v19_img_'
+        ROOM: 'ani_v20_room',
+        USER: 'ani_v20_user',
+        AVATAR: 'ani_v20_avatar',
+        BANNER_POS: 'ani_v20_pos_',
+        BANNER_IMG: 'ani_v20_img_'
     }
 };
 
-// 3. 應用狀態與核心控制器
 const App = {
     room: '',
     user: '',
+    avatar: '',
     dataList: [],
     currentTab: 'home',
     currentFilter: '全部',
     currentID: null,
     selectedDay: '週一',
     selectedTags: [],
+    searchTerm: '',
 
     init() {
+        setTimeout(() => {
+            const boot = document.getElementById('boot-screen');
+            boot.style.opacity = '0';
+            setTimeout(() => boot.style.display = 'none', 800);
+        }, 1500);
+
         this.room = localStorage.getItem(CONSTANTS.STORAGE_KEYS.ROOM);
         this.user = localStorage.getItem(CONSTANTS.STORAGE_KEYS.USER);
+        this.avatar = localStorage.getItem(CONSTANTS.STORAGE_KEYS.AVATAR);
 
         if(!this.room) {
             this.room = prompt("聖域房號 (Room ID)：")?.toUpperCase();
@@ -925,20 +608,22 @@ const App = {
 
         document.getElementById('room-display').innerText = `# ${this.room}`;
         
+        if (this.avatar) {
+            document.getElementById('current-avatar').src = this.avatar;
+        }
+
         UI.setupEditorInputs();
         Banner.loadSaved();
         this.bindEvents();
     },
 
     bindEvents() {
-        // 數據監聽
         database.ref(`rooms/${this.room}/data`).on('value', snap => {
             this.dataList = snap.val() ? Object.values(snap.val()) : [];
             this.render();
             UI.renderTags();
         });
 
-        // 聊天監聽
         database.ref(`rooms/${this.room}/chat`).limitToLast(40).on('value', snap => {
             Chat.render(snap.val());
         });
@@ -946,9 +631,17 @@ const App = {
 
     setTab(tab) {
         this.currentTab = tab;
+        this.currentFilter = '全部'; // 切換Tab時重置標籤篩選
+        this.searchTerm = ''; // 切換Tab時重置搜尋
+        document.querySelector('.search-input').value = '';
+
         document.querySelectorAll('.nav-link').forEach(el => {
-            el.classList.toggle('active', el.id === `nav-${tab}`);
+            el.classList.remove('active');
         });
+        
+        const activeLink = document.getElementById(`nav-${tab}`);
+        if(activeLink) activeLink.classList.add('active');
+        
         this.render();
     },
 
@@ -958,18 +651,44 @@ const App = {
         UI.renderTags();
     },
 
+    handleSearch(val) {
+        this.searchTerm = val.toLowerCase();
+        this.render();
+    },
+
     render() {
         const grid = document.getElementById('main-grid');
         let filtered = [...this.dataList];
 
-        // 頁籤過濾
-        if(this.currentTab === 'home') filtered = filtered.sort((a,b) => b.timestamp - a.timestamp).slice(0, 15);
-        if(this.currentTab === 'fav') filtered = filtered.filter(a => a.fav);
-        if(this.currentTab === 'hist') filtered = filtered.filter(a => a.lastEp).sort((a,b) => b.timestamp - a.timestamp);
+        // 1. 基本 Tab 過濾
+        if(this.currentTab === 'home') {
+            filtered = filtered.sort((a,b) => b.timestamp - a.timestamp).slice(0, 15);
+        } else if(this.currentTab === 'anime') {
+            filtered = filtered.filter(a => a.type === 'anime' || !a.type).sort((a,b) => b.timestamp - a.timestamp);
+        } else if(this.currentTab === 'manga') {
+            filtered = filtered.filter(a => a.type === 'manga').sort((a,b) => b.timestamp - a.timestamp);
+        } else if(this.currentTab === 'fav') {
+            filtered = filtered.filter(a => a.fav);
+        } else if(this.currentTab === 'hist') {
+            // 觀看紀錄區分開動漫畫 (根據當前頁面類型隱式判斷? 還是直接顯示全部?
+            // 這裡邏輯改為：顯示全部有紀錄的，但會標記類型。
+            // 由於用戶要求「區分開動漫畫」，這裡採用更直觀的方式：
+            // 如果用戶在「動畫庫」點觀看紀錄，顯示動畫紀錄；在「漫畫庫」點，顯示漫畫。
+            // 但目前的UI是全域 Tab。折衷方案：在觀看紀錄頁中，依然混合顯示，但可以透過搜尋或標籤過濾。
+            // 或者，我們可以簡單地將列表按時間排序，類型標籤已在卡片上。
+            // *優化方案*：使用上方的 anime/manga 導航作為過濾器比較複雜。
+            // 簡單處理：列出所有有觀看進度(lastEp)的作品。
+            filtered = filtered.filter(a => a.lastEp).sort((a,b) => b.timestamp - a.timestamp);
+        }
 
-        // 標籤過濾
+        // 2. 標籤過濾
         if(this.currentFilter !== '全部') {
             filtered = filtered.filter(a => (a.tags || []).includes(this.currentFilter));
+        }
+
+        // 3. 搜尋過濾
+        if(this.searchTerm) {
+            filtered = filtered.filter(a => a.title.toLowerCase().includes(this.searchTerm));
         }
 
         grid.innerHTML = filtered.map(item => UI.createCardHTML(item)).join('');
@@ -977,14 +696,24 @@ const App = {
 
     saveData() {
         const id = document.getElementById('ed-id').value || Date.now().toString();
+        const type = document.getElementById('ed-type').value;
+        
+        // 收集所有選中的標籤 (包含預設和手動新增的)
+        const tags = [];
+        document.querySelectorAll('#ed-tag-opts .tag-pill.active').forEach(el => {
+            tags.push(el.innerText);
+        });
+
         const payload = {
             id,
             title: document.getElementById('ed-title').value,
             img: document.getElementById('ed-img').value,
-            year: document.getElementById('ed-year').value,
-            month: document.getElementById('ed-month').value,
+            type: type, 
+            // 漫畫不儲存年月
+            year: type === 'manga' ? '' : document.getElementById('ed-year').value,
+            month: type === 'manga' ? '' : document.getElementById('ed-month').value,
             day: this.selectedDay,
-            tags: this.selectedTags,
+            tags: tags,
             links: document.getElementById('ed-links').value.split('\n').filter(l => l.trim()),
             timestamp: Date.now()
         };
@@ -1007,10 +736,22 @@ const App = {
         const newState = !item.fav;
         database.ref(`rooms/${this.room}/data/${this.currentID}`).update({ fav: newState });
         
-        // 即時更新 UI 圖示
         const icon = document.getElementById('mv-fav-icon');
         icon.style.color = newState ? 'var(--accent-pink)' : 'var(--text-sub)';
         this.render();
+    },
+
+    handleAvatarUpload(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imgData = e.target.result;
+                this.avatar = imgData;
+                localStorage.setItem(CONSTANTS.STORAGE_KEYS.AVATAR, imgData);
+                document.getElementById('current-avatar').src = imgData;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
     },
 
     logout() {
@@ -1032,6 +773,10 @@ const UI = {
     },
 
     createCardHTML(item) {
+        const typeLabel = item.type === 'manga' ? '漫畫' : '動畫';
+        // 漫畫顯示連載中/完結，動畫顯示年月
+        const subInfo = item.type === 'manga' ? item.day : `${item.year} • ${item.day}`;
+        
         return `
             <div class="ani-node" onclick="UI.openView('${item.id}')">
                 <div class="fav-hit ${item.fav ? 'active' : ''}" onclick="event.stopPropagation(); App.currentID='${item.id}'; App.toggleFav();">
@@ -1039,7 +784,7 @@ const UI = {
                 </div>
                 <img src="${item.img}" class="ani-poster" onerror="this.src='https://via.placeholder.com/400x550?text=NO+IMAGE'">
                 <div class="ani-meta">
-                    <div class="ani-label">${item.year} • ${item.day}</div>
+                    <div class="ani-label"><span class="type-badge">${typeLabel}</span>${subInfo}</div>
                     <div class="ani-name">${item.title}</div>
                 </div>
             </div>
@@ -1067,7 +812,11 @@ const UI = {
                 <div class="ep-btn ${item.lastEp == idx+1 ? 'active' : ''}" onclick="UI.watch('${item.id}', '${link}', ${idx+1})">${idx+1}</div>
             `).join('');
 
-            document.getElementById('mv-play-btn').onclick = () => {
+            const playBtn = document.getElementById('mv-play-btn');
+            // 漫畫改為閱讀
+            playBtn.innerHTML = item.type === 'manga' ? '<i class="fa-solid fa-book-open"></i> 立即閱讀' : '<i class="fa-solid fa-play"></i> 立即觀看';
+            
+            playBtn.onclick = () => {
                 const epIdx = (item.lastEp || 1) - 1;
                 UI.watch(item.id, eps[epIdx], item.lastEp || 1);
             };
@@ -1084,23 +833,26 @@ const UI = {
         const modal = document.getElementById('modal-editor');
         modal.style.display = 'flex';
         
+        // 重置手動輸入框
+        document.getElementById('manual-tag').value = '';
+
         if(!id) {
-            // 新增模式
-            document.getElementById('ed-header').innerText = "新增動畫作品";
+            document.getElementById('ed-header').innerText = "新增作品";
             document.getElementById('ed-id').value = "";
             document.getElementById('ed-title').value = "";
             document.getElementById('ed-img').value = "";
+            document.getElementById('ed-type').value = "anime";
             document.getElementById('ed-links').value = "";
             document.getElementById('ed-del-btn').style.display = 'none';
             App.selectedTags = [];
             this.setEditDay("週一");
         } else {
-            // 編輯模式
             const item = App.dataList.find(i => i.id === id);
-            document.getElementById('ed-header').innerText = "編輯作品數據";
+            document.getElementById('ed-header').innerText = "編輯數據";
             document.getElementById('ed-id').value = item.id;
             document.getElementById('ed-title').value = item.title;
             document.getElementById('ed-img').value = item.img;
+            document.getElementById('ed-type').value = item.type || "anime";
             document.getElementById('ed-year').value = item.year;
             document.getElementById('ed-month').value = item.month;
             document.getElementById('ed-links').value = (item.links || []).join('\n');
@@ -1108,6 +860,8 @@ const UI = {
             App.selectedTags = item.tags || [];
             this.setEditDay(item.day || "週一");
         }
+        
+        this.toggleDateFields(); // 根據類型初始化日期欄位顯示
         this.refreshTagOpts();
     },
 
@@ -1130,9 +884,30 @@ const UI = {
             dayBox.innerHTML += `<div class="ep-btn" id="eday-${d}" onclick="UI.setEditDay('${d}')">${d}</div>`;
         });
 
+        // 預設標籤池
+        tagBox.innerHTML = ''; // 清空
         CONSTANTS.TAG_POOL.forEach(t => {
-            tagBox.innerHTML += `<div class="ep-btn" id="etag-${t}" onclick="UI.toggleEditTag('${t}')" style="font-size:0.8rem;">${t}</div>`;
+            const div = document.createElement('div');
+            div.className = 'tag-pill';
+            div.innerText = t;
+            div.onclick = () => UI.toggleEditTag(div, t);
+            tagBox.appendChild(div);
         });
+    },
+
+    // 切換日期欄位顯示
+    toggleDateFields() {
+        const type = document.getElementById('ed-type').value;
+        const yearGroup = document.getElementById('group-year');
+        const monthGroup = document.getElementById('group-month');
+        
+        if (type === 'manga') {
+            yearGroup.style.display = 'none';
+            monthGroup.style.display = 'none';
+        } else {
+            yearGroup.style.display = 'block';
+            monthGroup.style.display = 'block';
+        }
     },
 
     setEditDay(d) {
@@ -1142,15 +917,64 @@ const UI = {
         });
     },
 
-    toggleEditTag(t) {
-        if(App.selectedTags.includes(t)) App.selectedTags = App.selectedTags.filter(i => i !== t);
-        else App.selectedTags.push(t);
-        this.refreshTagOpts();
+    toggleEditTag(el, t) {
+        // UI切換
+        el.classList.toggle('active');
+        // 邏輯無需同步 App.selectedTags 陣列，儲存時直接讀取 DOM class 即可，這樣支援手動標籤
+    },
+
+    // 新增手動標籤
+    addManualTag() {
+        const input = document.getElementById('manual-tag');
+        const val = input.value.trim();
+        if(!val) return;
+
+        const tagBox = document.getElementById('ed-tag-opts');
+        
+        // 檢查是否已存在
+        let exists = false;
+        tagBox.querySelectorAll('.tag-pill').forEach(el => {
+            if(el.innerText === val) {
+                el.classList.add('active');
+                exists = true;
+            }
+        });
+
+        if(!exists) {
+            const div = document.createElement('div');
+            div.className = 'tag-pill active'; // 新增即選中
+            div.innerText = val;
+            div.onclick = () => div.classList.toggle('active');
+            // 插入到最前面
+            tagBox.insertBefore(div, tagBox.firstChild);
+        }
+        
+        input.value = '';
     },
 
     refreshTagOpts() {
-        document.querySelectorAll('#ed-tag-opts .ep-btn').forEach(b => {
-            b.classList.toggle('active', App.selectedTags.includes(b.innerText));
+        const tagBox = document.getElementById('ed-tag-opts');
+        // 先重置所有預設標籤的狀態
+        tagBox.querySelectorAll('.tag-pill').forEach(el => el.classList.remove('active'));
+        
+        // 對於每一個已選的標籤
+        App.selectedTags.forEach(t => {
+            let found = false;
+            // 嘗試在現有DOM中找
+            tagBox.querySelectorAll('.tag-pill').forEach(el => {
+                if(el.innerText === t) {
+                    el.classList.add('active');
+                    found = true;
+                }
+            });
+            // 如果是自定義標籤(不在池中)，則動態創建
+            if(!found) {
+                const div = document.createElement('div');
+                div.className = 'tag-pill active';
+                div.innerText = t;
+                div.onclick = () => div.classList.toggle('active');
+                tagBox.insertBefore(div, tagBox.firstChild);
+            }
         });
     },
 
@@ -1171,6 +995,10 @@ const UI = {
 
     triggerUpload() {
         document.getElementById('banner-upload').click();
+    },
+
+    triggerAvatarUpload() {
+        document.getElementById('avatar-upload').click();
     }
 };
 
@@ -1233,7 +1061,6 @@ const Banner = {
     },
 
     updateTransform() {
-        // 使用 GPU 加速的 transform 屬性
         document.getElementById('hero-media').style.transform = `translateY(${this.currentY}px) translateZ(0)`;
     },
 
@@ -1271,7 +1098,7 @@ const Chat = {
         
         box.innerHTML = Object.entries(data).map(([id, msg]) => `
             <div class="msg-bubble ${msg.u === App.user ? 'self' : 'peer'}">
-                <div style="font-size:0.7rem; opacity:0.6; margin-bottom:4px; font-weight:900;">${msg.u}</div>
+                <span class="sender">${msg.u}</span>
                 ${msg.t}
             </div>
         `).join('');
