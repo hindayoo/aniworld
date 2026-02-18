@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ANIWORLD | SYSTEM V21</title>
+    <title>ANIWORLD | SYSTEM V24.2</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -109,8 +109,21 @@
         }
 
         .header-actions { display: flex; align-items: center; gap: 20px; font-size: 1.3rem; }
-        .action-icon { cursor: pointer; transition: 0.2s; color: var(--text-sub); }
+        .action-icon { cursor: pointer; transition: 0.2s; color: var(--text-sub); position: relative;}
         .action-icon:hover { color: var(--accent); transform: scale(1.1); }
+        
+        .badge-dot {
+            position: absolute; top: -2px; right: -2px; width: 10px; height: 10px;
+            background: #ff4444; border-radius: 50%; display: none;
+            box-shadow: 0 0 10px #ff4444;
+        }
+
+        .lang-btn {
+            font-size: 0.9rem; font-weight: 800; border: 1px solid var(--border-color);
+            padding: 5px 12px; border-radius: 8px; cursor: pointer; color: var(--text-sub);
+            transition: 0.3s;
+        }
+        .lang-btn:hover { border-color: var(--accent); color: var(--accent); }
 
         .user-avatar-wrap { position: relative; width: 45px; height: 45px; cursor: pointer; }
         .user-avatar {
@@ -146,7 +159,6 @@
             display: block; margin-top: 10px;
         }
         
-        /* 搜尋欄樣式 */
         .search-container {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
             z-index: 20; width: 90%; max-width: 600px;
@@ -212,7 +224,6 @@
             background: rgba(255, 255, 255, 0.1); padding: 2px 8px; border-radius: 4px;
             font-size: 0.7rem; color: #fff; margin-right: 8px; vertical-align: middle;
         }
-
         .ani-label {
             color: var(--accent); font-weight: 900; font-size: 0.8rem;
             text-transform: uppercase; letter-spacing: 1px;
@@ -253,6 +264,12 @@
         .chat-body {
             flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
         }
+        .notice-item {
+            padding: 15px; border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem; color: var(--text-sub);
+        }
+        .notice-item strong { color: var(--accent); }
+
         .msg-bubble {
             padding: 12px 18px; border-radius: 18px; font-size: 0.95rem;
             max-width: 80%; word-break: break-all; line-height: 1.5; position: relative;
@@ -280,22 +297,46 @@
         }
 
         /* =========================================
-           7. 模態視窗與編輯器 (空間優化)
+           7. 模態視窗 (優化版)
            ========================================= */
         .modal-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 5000;
             display: none; align-items: center; justify-content: center;
             backdrop-filter: blur(20px); padding: 20px;
         }
+        
+        /* 一般卡片 (詳情頁) */
         .modal-card {
             width: 100%; max-width: 1300px; height: 88vh; background: var(--bg-dark);
             border-radius: 40px; border: 1px solid var(--border-color); display: flex;
             overflow: hidden; animation: modalPop 0.5s var(--e-out);
         }
+
+        /* [修復] 編輯器專用卡片樣式：固定頭尾，中間捲動 */
+        .modal-card.editor-mode {
+            max-width: 900px; 
+            height: 90vh; /* 固定高度 */
+            flex-direction: column;
+            padding: 0; /* 移除內距，交給子元素 */
+        }
+
+        .editor-header {
+            padding: 30px 40px; border-bottom: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.3); flex-shrink: 0;
+        }
+        .editor-body {
+            padding: 40px; overflow-y: auto; flex: 1; /* 佔滿剩餘空間並捲動 */
+        }
+        .editor-footer {
+            padding: 20px 40px; border-top: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.3); flex-shrink: 0; display: flex; gap: 20px;
+        }
+
         @keyframes modalPop {
             from { transform: scale(0.9) translateY(30px); opacity: 0; }
             to { transform: scale(1) translateY(0); opacity: 1; }
         }
+        
         .modal-visual {
             flex: 1.3; background: #000; position: relative; display: flex; align-items: center; justify-content: center;
         }
@@ -322,18 +363,50 @@
             background: var(--accent); color: #000; border-color: var(--accent);
         }
 
-        /* 編輯器優化 CSS */
+        /* 編輯器內部元件 */
         .editor-container {
-            display: flex; flex-direction: column; gap: 15px; /* 增加間距 */
+            display: flex; flex-direction: column; gap: 20px;
         }
         .editor-row {
             display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
         }
+        
+        .editor-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+        .editor-row.triple.mode-manga { grid-template-columns: 1fr; } /* 漫畫模式強制單欄 */
+
         .editor-label {
-            display: block; margin-bottom: 6px; font-weight: 700; color: var(--text-sub); font-size: 0.9rem;
+            display: block; margin-bottom: 8px; font-weight: 700; color: var(--text-sub); font-size: 0.95rem;
         }
         .manual-tag-input {
             display: flex; gap: 10px; margin-bottom: 10px;
+        }
+        
+        .auto-fetch-row {
+            display: flex; gap: 10px; margin-bottom: 25px; 
+            padding-bottom: 25px; border-bottom: 1px solid var(--border-color);
+            align-items: flex-end; flex-wrap: wrap;
+        }
+        .btn-fetch {
+            background: linear-gradient(135deg, #7928ca, #ff0080);
+            color: #fff; border: none; white-space: nowrap;
+        }
+        .btn-fetch:hover {
+            box-shadow: 0 0 15px rgba(255, 0, 128, 0.4);
+        }
+
+        /* 標籤區與連結區優化 */
+        #ed-tag-opts {
+            display: flex; flex-wrap: wrap; gap: 10px; padding: 15px;
+            background: rgba(255, 255, 255, 0.05); border-radius: 12px;
+            max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color);
+        }
+        #ed-tag-opts div {
+            padding: 6px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color);
+            border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.85rem;
+        }
+        #ed-links {
+            height: 150px; font-family: monospace; font-size: 0.85rem;
+            background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); resize: none;
         }
 
         /* 響應式調整 */
@@ -344,7 +417,12 @@
             .hero-title { font-size: 1.8rem; }
             .side-panel { width: 92%; right: 4%; }
             #ed-tag-opts { flex-wrap: wrap; gap: 10px; max-height: 220px; }
-            .editor-row { grid-template-columns: 1fr; gap: 10px; }
+            
+            /* 手機版強制單欄 */
+            .editor-row, .editor-row.triple { grid-template-columns: 1fr !important; gap: 15px; }
+            .auto-fetch-row { flex-direction: column; align-items: stretch; }
+            
+            .editor-header, .editor-body, .editor-footer { padding: 20px; }
         }
 
         /* FABs */
@@ -363,20 +441,38 @@
             z-index: 2500; box-shadow: 0 10px 30px var(--accent-glow);
         }
 
-        /* 標籤區與連結區優化 */
-        #ed-tag-opts {
-            display: flex; flex-wrap: wrap; gap: 10px; padding: 15px;
-            background: rgba(255, 255, 255, 0.05); border-radius: 12px;
-            max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color);
+        /* 歷史紀錄篩選按鈕容器 */
+        #hist-controls {
+            display: none; 
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            animation: fadeIn 0.5s ease;
         }
-        #ed-tag-opts div {
-            padding: 6px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color);
-            border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.85rem;
+
+        .hist-btn {
+            padding: 10px 25px;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-sub);
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        #ed-links {
-            height: 150px; font-family: monospace; font-size: 0.85rem;
-            background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); resize: none;
+
+        .hist-btn:hover { border-color: var(--accent); color: var(--text-main); }
+        .hist-btn.active {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent-glow);
+            border-color: var(--accent);
         }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body onmouseup="Banner.endDrag()" onmouseleave="Banner.endDrag()">
@@ -393,16 +489,20 @@
     </div>
     
     <nav class="nav-menu">
-        <div class="nav-link active" id="nav-home" onclick="App.setTab('home')">首頁</div>
-        <div class="nav-link" id="nav-anime" onclick="App.setTab('anime')">動畫庫</div>
-        <div class="nav-link" id="nav-manga" onclick="App.setTab('manga')">漫畫庫</div>
-        <div class="nav-link" id="nav-fav" onclick="App.setTab('fav')">我的收藏</div>
-        <div class="nav-link" id="nav-hist" onclick="App.setTab('hist')">觀看紀錄</div>
+        <div class="nav-link active" id="nav-home" onclick="App.setTab('home')" data-lang="nav_home">首頁</div>
+        <div class="nav-link" id="nav-anime" onclick="App.setTab('anime')" data-lang="nav_anime">動畫庫</div>
+        <div class="nav-link" id="nav-manga" onclick="App.setTab('manga')" data-lang="nav_manga">漫畫庫</div>
+        <div class="nav-link" id="nav-fav" onclick="App.setTab('fav')" data-lang="nav_fav">我的收藏</div>
+        <div class="nav-link" id="nav-hist" onclick="App.setTab('hist')" data-lang="nav_hist">觀看紀錄</div>
     </nav>
 
     <div class="header-actions">
+        <div class="lang-btn" onclick="App.toggleLang()" id="lang-display">ZH</div>
         <i class="fa-solid fa-moon action-icon" onclick="UI.toggleTheme()"></i>
-        <i class="fa-solid fa-bell action-icon" onclick="UI.togglePanel('notice-hub')"></i>
+        <div style="position:relative;">
+            <i class="fa-solid fa-bell action-icon" onclick="Notifications.open()"></i>
+            <div id="notice-dot" class="badge-dot"></div>
+        </div>
         
         <div class="user-avatar-wrap" onclick="UI.triggerAvatarUpload()">
             <img id="current-avatar" class="user-avatar" src="https://via.placeholder.com/150" alt="Avatar">
@@ -417,16 +517,16 @@
     <img id="hero-media" src="https://images.alphacoders.com/133/1339031.png">
     <div class="hero-mask"></div>
     <div class="hero-content">
-        <h1 class="hero-title">ANIWORLD<br><span class="hero-subtitle">V21 SYSTEM</span></h1>
+        <h1 class="hero-title">ANIWORLD<br><span class="hero-subtitle">V24.2 SYSTEM</span></h1>
     </div>
     
     <div class="search-container">
-        <input type="text" class="search-input" placeholder="搜尋作品名稱..." oninput="App.handleSearch(this.value)">
+        <input type="text" class="search-input" placeholder="搜尋作品名稱..." oninput="App.handleSearch(this.value)" data-lang-ph="search_ph">
     </div>
 
     <div class="hero-controls">
-        <button class="btn-mini" onclick="UI.triggerUpload()"><i class="fa-solid fa-camera"></i> 封面更換</button>
-        <button class="btn-mini" id="drag-btn" onclick="Banner.toggleDrag()"><i class="fa-solid fa-arrows-up-down"></i> 位置調整</button>
+        <button class="btn-mini" onclick="UI.triggerUpload()"><i class="fa-solid fa-camera"></i> <span data-lang="btn_cover">封面更換</span></button>
+        <button class="btn-mini" id="drag-btn" onclick="Banner.toggleDrag()"><i class="fa-solid fa-arrows-up-down"></i> <span data-lang="btn_pos">位置調整</span></button>
         <input type="file" id="banner-upload" hidden accept="image/*" onchange="Banner.handleFile(this)">
     </div>
 </section>
@@ -436,21 +536,27 @@
         <div class="tag-wrap" id="tag-cloud"></div>
     </div>
 
+    <div id="hist-controls">
+        <div class="hist-btn active" onclick="App.setHistType('all', this)"><i class="fa-solid fa-layer-group"></i> <span data-lang="filter_all">全部</span></div>
+        <div class="hist-btn" onclick="App.setHistType('anime', this)"><i class="fa-solid fa-film"></i> <span data-lang="filter_anime">動畫</span></div>
+        <div class="hist-btn" onclick="App.setHistType('manga', this)"><i class="fa-solid fa-book-open"></i> <span data-lang="filter_manga">漫畫</span></div>
+    </div>
+
     <div class="ani-grid" id="main-grid"></div>
 </main>
 
 <div id="notice-hub" class="side-panel">
-    <div class="panel-head"><h3>系統公告</h3><i class="fa-solid fa-xmark action-icon" onclick="UI.togglePanel('notice-hub')"></i></div>
-    <div style="flex:1; display:flex; align-items:center; justify-content:center; opacity:0.3;">
-        <p>目前沒有新的通訊紀錄</p>
+    <div class="panel-head"><h3 data-lang="panel_notice">系統公告</h3><i class="fa-solid fa-xmark action-icon" onclick="UI.togglePanel('notice-hub')"></i></div>
+    <div id="notice-list" class="chat-body" style="padding-top:0;">
+        <div style="text-align:center; padding:20px; opacity:0.5;" data-lang="no_notice">目前沒有新的通知</div>
     </div>
 </div>
 
 <div id="chat-hub" class="side-panel">
-    <div class="panel-head"><h3>聖域頻道</h3><i class="fa-solid fa-xmark action-icon" onclick="UI.togglePanel('chat-hub')"></i></div>
+    <div class="panel-head"><h3 data-lang="panel_chat">聖域頻道</h3><i class="fa-solid fa-xmark action-icon" onclick="UI.togglePanel('chat-hub')"></i></div>
     <div id="chat-messages" class="chat-body"></div>
     <div class="chat-footer">
-        <input type="text" id="chat-input" class="input-dark" placeholder="輸入訊息..." onkeypress="if(event.key==='Enter') Chat.send()">
+        <input type="text" id="chat-input" class="input-dark" placeholder="輸入訊息..." onkeypress="if(event.key==='Enter') Chat.send()" data-lang-ph="chat_ph">
         <button class="btn-mini" style="background:var(--accent); color:#000;" onclick="Chat.send()"><i class="fa-solid fa-paper-plane"></i></button>
     </div>
 </div>
@@ -473,11 +579,11 @@
                 <i id="mv-fav-icon" class="fa-solid fa-heart" style="font-size:2.5rem; cursor:pointer;" onclick="App.toggleFav()"></i>
             </div>
             <div style="margin-top:50px;">
-                <h3 style="color:var(--accent); font-size:1.5rem; border-left:4px solid var(--accent); padding-left:15px;">選集播放</h3>
+                <h3 style="color:var(--accent); font-size:1.5rem; border-left:4px solid var(--accent); padding-left:15px;" data-lang="ep_list">選集播放</h3>
                 <div id="mv-eps" class="ep-grid"></div>
             </div>
             <div style="margin-top:60px; padding-top:40px; border-top:1px solid var(--border-color); display:flex; gap:20px;">
-                <button id="mv-play-btn" class="btn-mini" style="flex:1; padding:20px; font-size:1.2rem; background:var(--accent); color:#000; border:none;"><i class="fa-solid fa-play"></i> 立即觀看</button>
+                <button id="mv-play-btn" class="btn-mini" style="flex:1; padding:20px; font-size:1.2rem; background:var(--accent); color:#000; border:none;"><i class="fa-solid fa-play"></i> <span data-lang="btn_play">立即觀看</span></button>
                 <button class="btn-mini" style="padding:20px 30px;" onclick="UI.switchToEdit()"><i class="fa-solid fa-gear"></i></button>
             </div>
         </div>
@@ -485,63 +591,77 @@
 </div>
 
 <div id="modal-editor" class="modal-overlay" onclick="if(event.target==this) UI.closeModals()">
-    <div class="modal-card" style="max-width:900px; height:auto; flex-direction:column; padding:50px;">
-        <h2 id="ed-header" style="margin:0 0 30px 0; font-size:2rem; font-weight:900;">數據維護中心</h2>
-        <input type="hidden" id="ed-id">
+    <div class="modal-card editor-mode">
+        <div class="editor-header">
+            <h2 id="ed-header" style="margin:0; font-size:2rem; font-weight:900;" data-lang="ed_header">數據維護中心</h2>
+        </div>
         
-        <div class="editor-container">
-            <div class="editor-row">
+        <div class="editor-body">
+            <input type="hidden" id="ed-id">
+            <div class="editor-container">
+                <div class="auto-fetch-row">
+                    <div style="flex:1;">
+                        <label class="editor-label" style="color:var(--accent);" data-lang="ed_auto">智能抓取 (貼上網站連結)</label>
+                        <input type="text" id="ed-auto-url" class="input-dark" style="width:100%;" placeholder="https://...">
+                    </div>
+                    <button class="btn-mini btn-fetch" onclick="App.fetchMeta()">
+                        <i class="fa-solid fa-bolt"></i> <span data-lang="btn_auto">一鍵帶入</span>
+                    </button>
+                </div>
+
+                <div class="editor-row">
+                    <div>
+                        <label class="editor-label" data-lang="ed_title">作品名稱 *</label>
+                        <input type="text" id="ed-title" class="input-dark" style="width:100%;">
+                    </div>
+                    <div>
+                        <label class="editor-label" data-lang="ed_img">封面連結 (URL)</label>
+                        <input type="text" id="ed-img" class="input-dark" style="width:100%;">
+                    </div>
+                </div>
+
+                <div class="editor-row triple" id="row-date-config">
+                    <div>
+                        <label class="editor-label" data-lang="ed_type">類型</label>
+                        <select id="ed-type" class="input-dark" style="width:100%;" onchange="UI.toggleDateFields()">
+                            <option value="anime">動畫 (Anime)</option>
+                            <option value="manga">漫畫 (Manga)</option>
+                        </select>
+                    </div>
+                    <div id="group-year">
+                        <label class="editor-label" data-lang="ed_year">年份</label>
+                        <select id="ed-year" class="input-dark" style="width:100%;"></select>
+                    </div>
+                    <div id="group-month">
+                        <label class="editor-label" data-lang="ed_month">月份</label>
+                        <select id="ed-month" class="input-dark" style="width:100%;"></select>
+                    </div>
+                </div>
+
+                <div id="group-cycle">
+                    <label class="editor-label" data-lang="ed_cycle">更新週期</label>
+                    <div id="ed-day-opts" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;"></div>
+                </div>
+
                 <div>
-                    <label class="editor-label">作品名稱</label>
-                    <input type="text" id="ed-title" class="input-dark" style="width:100%;">
+                    <label class="editor-label" data-lang="ed_tag">分類標籤</label>
+                    <div class="manual-tag-input">
+                        <input type="text" id="manual-tag" class="input-dark" placeholder="Tags...">
+                        <button class="btn-mini" style="width:auto;" onclick="UI.addManualTag()" data-lang="btn_add">新增</button>
+                    </div>
+                    <div id="ed-tag-opts"></div>
                 </div>
+
                 <div>
-                    <label class="editor-label">封面連結 (URL)</label>
-                    <input type="text" id="ed-img" class="input-dark" style="width:100%;">
+                    <label class="editor-label" data-lang="ed_ep">集數數據 (格式：第01集|URL)</label>
+                    <textarea id="ed-links" class="input-dark" style="width:100%;"></textarea>
                 </div>
             </div>
+        </div>
 
-            <div class="editor-row" style="grid-template-columns: 1fr 1fr 1fr;">
-                <div>
-                    <label class="editor-label">類型</label>
-                    <select id="ed-type" class="input-dark" style="width:100%;" onchange="UI.toggleDateFields()">
-                        <option value="anime">動畫 (Anime)</option>
-                        <option value="manga">漫畫 (Manga)</option>
-                    </select>
-                </div>
-                <div id="group-year">
-                    <label class="editor-label">年份</label>
-                    <select id="ed-year" class="input-dark" style="width:100%;"></select>
-                </div>
-                <div id="group-month">
-                    <label class="editor-label">月份</label>
-                    <select id="ed-month" class="input-dark" style="width:100%;"></select>
-                </div>
-            </div>
-
-            <div>
-                <label class="editor-label">更新週期</label>
-                <div id="ed-day-opts" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;"></div>
-            </div>
-
-            <div>
-                <label class="editor-label">分類標籤</label>
-                <div class="manual-tag-input">
-                    <input type="text" id="manual-tag" class="input-dark" placeholder="輸入自定義標籤...">
-                    <button class="btn-mini" style="width:auto;" onclick="UI.addManualTag()">新增</button>
-                </div>
-                <div id="ed-tag-opts"></div>
-            </div>
-
-            <div>
-                <label class="editor-label">集數數據 (格式：第01集|URL)</label>
-                <textarea id="ed-links" class="input-dark" style="width:100%;"></textarea>
-            </div>
-
-            <div style="display:flex; gap:20px; margin-top:10px;">
-                <button class="btn-mini" style="flex:2; background:var(--accent); color:#000; border:none; padding:18px; font-size:1.1rem;" onclick="App.saveData()">確認儲存</button>
-                <button id="ed-del-btn" class="btn-mini" style="flex:1; background:#ff4444; border:none; padding:18px;" onclick="App.deleteData()">移除作品</button>
-            </div>
+        <div class="editor-footer">
+            <button class="btn-mini" style="flex:2; background:var(--accent); color:#000; border:none; padding:18px; font-size:1.1rem;" onclick="App.saveData()"><span data-lang="btn_save">確認儲存</span></button>
+            <button id="ed-del-btn" class="btn-mini" style="flex:1; background:#ff4444; border:none; padding:18px;" onclick="App.deleteData()"><span data-lang="btn_del">移除作品</span></button>
         </div>
     </div>
 </div>
@@ -549,7 +669,7 @@
 <script>
 /**
  * =========================================
- * ANIWORLD ELITE V21 - Core Logic
+ * ANIWORLD ELITE V24.2 - Core Logic
  * =========================================
  */
 
@@ -560,15 +680,43 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
+const I18N = {
+    'zh-TW': {
+        nav_home: '首頁', nav_anime: '動畫庫', nav_manga: '漫畫庫', nav_fav: '我的收藏', nav_hist: '觀看紀錄',
+        search_ph: '搜尋作品名稱...', btn_cover: '封面更換', btn_pos: '位置調整',
+        filter_all: '全部', filter_anime: '動畫', filter_manga: '漫畫',
+        panel_notice: '系統通知', no_notice: '目前沒有新的動態',
+        panel_chat: '聖域頻道', chat_ph: '輸入訊息...',
+        ep_list: '選集播放', btn_play: '立即觀看', btn_read: '立即閱讀',
+        ed_header: '數據維護中心', ed_auto: '智能抓取 (貼上網站連結)', btn_auto: '一鍵帶入',
+        ed_title: '作品名稱', ed_img: '封面連結 (URL)', ed_type: '類型', ed_year: '年份', ed_month: '月份', ed_cycle: '更新週期', ed_tag: '分類標籤', ed_ep: '集數數據',
+        btn_add: '新增', btn_save: '確認儲存', btn_del: '移除作品',
+        month_s: '月番', year_s: '年'
+    },
+    'ja-JP': {
+        nav_home: 'ホーム', nav_anime: 'アニメ', nav_manga: '漫画', nav_fav: 'お気に入り', nav_hist: '履歴',
+        search_ph: '検索...', btn_cover: 'カバー変更', btn_pos: '位置調整',
+        filter_all: 'すべて', filter_anime: 'アニメ', filter_manga: '漫画',
+        panel_notice: 'システム通知', no_notice: '新しい通知はありません',
+        panel_chat: 'チャット', chat_ph: 'メッセージを入力...',
+        ep_list: 'エピソード', btn_play: '再生する', btn_read: '読む',
+        ed_header: 'データ編集', ed_auto: '自動取得 (URLを入力)', btn_auto: '自動入力',
+        ed_title: 'タイトル', ed_img: '画像URL', ed_type: 'タイプ', ed_year: '年', ed_month: '月', ed_cycle: '更新頻度', ed_tag: 'タグ', ed_ep: 'エピソードデータ',
+        btn_add: '追加', btn_save: '保存', btn_del: '削除',
+        month_s: '月', year_s: '年'
+    }
+};
+
 const CONSTANTS = {
     WEEK_DAYS: ["週一", "週二", "週三", "週四", "週五", "週六", "週日", "完結"],
     TAG_POOL: ["熱血", "冒險", "校園", "戀愛", "異世界", "奇幻", "日常", "懸疑", "百合", "耽美", "戰鬥", "美食", "機甲", "治癒", "致鬱", "後宮", "逆後宮", "肉番", "泡麵番", "劇場版", "運動", "智鬥", "勵志", "科幻", "推理", "特攝", "搞笑", "溫馨", "暗黑", "魔法", "偶像", "音樂", "歷史", "吸血鬼", "獸人", "卡牌", "驚悚", "恐怖"].sort(),
     STORAGE_KEYS: {
-        ROOM: 'ani_v20_room',
-        USER: 'ani_v20_user',
-        AVATAR: 'ani_v20_avatar',
-        BANNER_POS: 'ani_v20_pos_',
-        BANNER_IMG: 'ani_v20_img_'
+        ROOM: 'ani_v24_room',
+        USER: 'ani_v24_user',
+        AVATAR: 'ani_v24_avatar',
+        LANG: 'ani_v24_lang',
+        BANNER_POS: 'ani_v24_pos_',
+        BANNER_IMG: 'ani_v24_img_'
     }
 };
 
@@ -583,6 +731,8 @@ const App = {
     selectedDay: '週一',
     selectedTags: [],
     searchTerm: '',
+    histType: 'all',
+    lang: 'zh-TW',
 
     init() {
         setTimeout(() => {
@@ -594,11 +744,13 @@ const App = {
         this.room = localStorage.getItem(CONSTANTS.STORAGE_KEYS.ROOM);
         this.user = localStorage.getItem(CONSTANTS.STORAGE_KEYS.USER);
         this.avatar = localStorage.getItem(CONSTANTS.STORAGE_KEYS.AVATAR);
+        const savedLang = localStorage.getItem(CONSTANTS.STORAGE_KEYS.LANG);
+        if(savedLang) this.lang = savedLang;
 
         if(!this.room) {
             this.room = prompt("聖域房號 (Room ID)：")?.toUpperCase();
             if(this.room) localStorage.setItem(CONSTANTS.STORAGE_KEYS.ROOM, this.room);
-            else return;
+            else return; 
         }
 
         if(!this.user) {
@@ -607,41 +759,81 @@ const App = {
         }
 
         document.getElementById('room-display').innerText = `# ${this.room}`;
-        
-        if (this.avatar) {
-            document.getElementById('current-avatar').src = this.avatar;
-        }
+        if (this.avatar) document.getElementById('current-avatar').src = this.avatar;
 
+        this.updateLanguage();
         UI.setupEditorInputs();
         Banner.loadSaved();
         this.bindEvents();
     },
 
+    toggleLang() {
+        this.lang = this.lang === 'zh-TW' ? 'ja-JP' : 'zh-TW';
+        localStorage.setItem(CONSTANTS.STORAGE_KEYS.LANG, this.lang);
+        this.updateLanguage();
+        UI.renderTags(); 
+        UI.setupEditorInputs(); 
+        this.render(); 
+    },
+
+    updateLanguage() {
+        const t = I18N[this.lang];
+        document.getElementById('lang-display').innerText = this.lang === 'zh-TW' ? 'ZH' : 'JP';
+        
+        document.querySelectorAll('[data-lang]').forEach(el => {
+            const key = el.getAttribute('data-lang');
+            if(t[key]) el.innerText = t[key];
+        });
+        
+        document.querySelectorAll('[data-lang-ph]').forEach(el => {
+            const key = el.getAttribute('data-lang-ph');
+            if(t[key]) el.placeholder = t[key];
+        });
+    },
+
     bindEvents() {
+        let isFirstLoad = true;
         database.ref(`rooms/${this.room}/data`).on('value', snap => {
             this.dataList = snap.val() ? Object.values(snap.val()) : [];
             this.render();
             UI.renderTags();
+            
+            if(!isFirstLoad) {
+                Notifications.add(this.lang === 'zh-TW' ? '數據庫已更新' : 'データベースが更新されました');
+            }
         });
 
         database.ref(`rooms/${this.room}/chat`).limitToLast(40).on('value', snap => {
-            Chat.render(snap.val());
+            Chat.render(snap.val(), isFirstLoad);
+            isFirstLoad = false;
         });
     },
 
     setTab(tab) {
         this.currentTab = tab;
-        this.currentFilter = '全部'; // 切換Tab時重置標籤篩選
-        this.searchTerm = ''; // 切換Tab時重置搜尋
+        this.currentFilter = '全部'; 
+        this.searchTerm = ''; 
         document.querySelector('.search-input').value = '';
 
-        document.querySelectorAll('.nav-link').forEach(el => {
-            el.classList.remove('active');
-        });
-        
+        document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
         const activeLink = document.getElementById(`nav-${tab}`);
         if(activeLink) activeLink.classList.add('active');
         
+        const histControls = document.getElementById('hist-controls');
+        if (tab === 'hist') {
+            histControls.style.display = 'flex';
+            this.setHistType('all', document.querySelector('#hist-controls .hist-btn:first-child')); 
+        } else {
+            histControls.style.display = 'none';
+        }
+
+        this.render();
+    },
+    
+    setHistType(type, btnElement) {
+        this.histType = type;
+        document.querySelectorAll('.hist-btn').forEach(b => b.classList.remove('active'));
+        if(btnElement) btnElement.classList.add('active');
         this.render();
     },
 
@@ -655,12 +847,82 @@ const App = {
         this.searchTerm = val.toLowerCase();
         this.render();
     },
+    
+    fetchMeta() {
+        const urlInput = document.getElementById('ed-auto-url');
+        const url = urlInput.value.trim();
+        const btn = document.querySelector('.btn-fetch');
+        
+        if(!url) return alert("請先輸入目標網址！");
+        try { new URL(url); } catch(e) { return alert("網址格式不正確"); }
+
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+        btn.disabled = true;
+
+        const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(url);
+
+        fetch(proxyUrl)
+            .then(response => {
+                if (!response.ok) throw new Error('Proxy blocked');
+                return response.text();
+            })
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, "text/html");
+
+                const ogTitle = doc.querySelector('meta[property="og:title"]')?.content 
+                             || doc.querySelector('title')?.innerText || "";
+                
+                const ogImage = doc.querySelector('meta[property="og:image"]')?.content 
+                             || doc.querySelector('meta[name="twitter:image"]')?.content
+                             || doc.querySelector('link[rel="image_src"]')?.href;
+                
+                const description = doc.querySelector('meta[name="description"]')?.content || "";
+                const keywords = doc.querySelector('meta[name="keywords"]')?.content || "";
+
+                if(ogTitle) {
+                    let cleanTitle = ogTitle.split(' - ')[0].split(' | ')[0];
+                    document.getElementById('ed-title').value = cleanTitle;
+                }
+                
+                if(ogImage) {
+                    let finalImg = ogImage;
+                    if(ogImage.startsWith('/')) {
+                        const urlObj = new URL(url);
+                        finalImg = urlObj.origin + ogImage;
+                    }
+                    document.getElementById('ed-img').value = finalImg;
+                }
+
+                const textContent = (ogTitle + " " + description + " " + keywords).toLowerCase();
+                CONSTANTS.TAG_POOL.forEach(tag => {
+                    if(textContent.includes(tag) && !App.selectedTags.includes(tag)) {
+                        App.selectedTags.push(tag);
+                    }
+                });
+                UI.refreshTagOpts();
+
+                const currentLinks = document.getElementById('ed-links').value;
+                if(!currentLinks.trim()) {
+                    document.getElementById('ed-links').value = `第01集|${url}`;
+                }
+
+                if(!ogTitle && !ogImage) alert("自動抓取部分數據失敗，請手動檢查。");
+            })
+            .catch(err => {
+                console.error(err);
+                alert("抓取失敗，請手動輸入。");
+            })
+            .finally(() => {
+                btn.innerHTML = '<i class="fa-solid fa-bolt"></i> ' + I18N[App.lang].btn_auto;
+                btn.disabled = false;
+            });
+    },
 
     render() {
         const grid = document.getElementById('main-grid');
         let filtered = [...this.dataList];
 
-        // 1. 基本 Tab 過濾
         if(this.currentTab === 'home') {
             filtered = filtered.sort((a,b) => b.timestamp - a.timestamp).slice(0, 15);
         } else if(this.currentTab === 'anime') {
@@ -670,23 +932,18 @@ const App = {
         } else if(this.currentTab === 'fav') {
             filtered = filtered.filter(a => a.fav);
         } else if(this.currentTab === 'hist') {
-            // 觀看紀錄區分開動漫畫 (根據當前頁面類型隱式判斷? 還是直接顯示全部?
-            // 這裡邏輯改為：顯示全部有紀錄的，但會標記類型。
-            // 由於用戶要求「區分開動漫畫」，這裡採用更直觀的方式：
-            // 如果用戶在「動畫庫」點觀看紀錄，顯示動畫紀錄；在「漫畫庫」點，顯示漫畫。
-            // 但目前的UI是全域 Tab。折衷方案：在觀看紀錄頁中，依然混合顯示，但可以透過搜尋或標籤過濾。
-            // 或者，我們可以簡單地將列表按時間排序，類型標籤已在卡片上。
-            // *優化方案*：使用上方的 anime/manga 導航作為過濾器比較複雜。
-            // 簡單處理：列出所有有觀看進度(lastEp)的作品。
             filtered = filtered.filter(a => a.lastEp).sort((a,b) => b.timestamp - a.timestamp);
+            if (this.histType === 'anime') {
+                filtered = filtered.filter(a => a.type !== 'manga');
+            } else if (this.histType === 'manga') {
+                filtered = filtered.filter(a => a.type === 'manga');
+            }
         }
 
-        // 2. 標籤過濾
         if(this.currentFilter !== '全部') {
             filtered = filtered.filter(a => (a.tags || []).includes(this.currentFilter));
         }
 
-        // 3. 搜尋過濾
         if(this.searchTerm) {
             filtered = filtered.filter(a => a.title.toLowerCase().includes(this.searchTerm));
         }
@@ -697,8 +954,10 @@ const App = {
     saveData() {
         const id = document.getElementById('ed-id').value || Date.now().toString();
         const type = document.getElementById('ed-type').value;
+        const title = document.getElementById('ed-title').value.trim();
         
-        // 收集所有選中的標籤 (包含預設和手動新增的)
+        if(!title) return alert("請輸入作品名稱！");
+
         const tags = [];
         document.querySelectorAll('#ed-tag-opts .tag-pill.active').forEach(el => {
             tags.push(el.innerText);
@@ -706,10 +965,9 @@ const App = {
 
         const payload = {
             id,
-            title: document.getElementById('ed-title').value,
+            title: title,
             img: document.getElementById('ed-img').value,
             type: type, 
-            // 漫畫不儲存年月
             year: type === 'manga' ? '' : document.getElementById('ed-year').value,
             month: type === 'manga' ? '' : document.getElementById('ed-month').value,
             day: this.selectedDay,
@@ -717,15 +975,13 @@ const App = {
             links: document.getElementById('ed-links').value.split('\n').filter(l => l.trim()),
             timestamp: Date.now()
         };
-
-        if(!payload.title) return alert("請輸入標題");
         
         database.ref(`rooms/${this.room}/data/${id}`).update(payload)
             .then(() => UI.closeModals());
     },
 
     deleteData() {
-        if(confirm("確定要將此作品從聖域抹除嗎？")) {
+        if(confirm("確定要刪除？")) {
             database.ref(`rooms/${this.room}/data/${this.currentID}`).remove()
                 .then(() => UI.closeModals());
         }
@@ -755,27 +1011,50 @@ const App = {
     },
 
     logout() {
-        if(confirm("確定要離開當前聖域？")) {
+        if(confirm("確定要登出？")) {
             localStorage.clear();
             location.reload();
         }
     }
 };
 
-// 4. UI 渲染與互動控制器
+const Notifications = {
+    list: [],
+    
+    add(text) {
+        const dot = document.getElementById('notice-dot');
+        dot.style.display = 'block';
+        
+        const time = new Date().toLocaleTimeString();
+        const container = document.getElementById('notice-list');
+        
+        if(container.querySelector('[data-lang="no_notice"]')) container.innerHTML = '';
+        
+        const div = document.createElement('div');
+        div.className = 'notice-item';
+        div.innerHTML = `<strong>[${time}]</strong> ${text}`;
+        container.insertBefore(div, container.firstChild);
+    },
+    
+    open() {
+        UI.togglePanel('notice-hub');
+        document.getElementById('notice-dot').style.display = 'none';
+    }
+};
+
 const UI = {
     renderTags() {
         const container = document.getElementById('tag-cloud');
-        const tags = ["全部", ...CONSTANTS.TAG_POOL];
+        const tags = ["全部", ...CONSTANTS.TAG_POOL]; 
         container.innerHTML = tags.map(t => `
             <div class="tag-pill ${App.currentFilter === t ? 'active' : ''}" onclick="App.setFilter('${t}')">${t}</div>
         `).join('');
     },
 
     createCardHTML(item) {
-        const typeLabel = item.type === 'manga' ? '漫畫' : '動畫';
-        // 漫畫顯示連載中/完結，動畫顯示年月
-        const subInfo = item.type === 'manga' ? item.day : `${item.year} • ${item.day}`;
+        const t = I18N[App.lang];
+        const typeLabel = item.type === 'manga' ? t.filter_manga : t.filter_anime;
+        const subInfo = item.type === 'manga' ? '' : `${item.year} • ${item.day}`;
         
         return `
             <div class="ani-node" onclick="UI.openView('${item.id}')">
@@ -813,11 +1092,12 @@ const UI = {
             `).join('');
 
             const playBtn = document.getElementById('mv-play-btn');
-            // 漫畫改為閱讀
-            playBtn.innerHTML = item.type === 'manga' ? '<i class="fa-solid fa-book-open"></i> 立即閱讀' : '<i class="fa-solid fa-play"></i> 立即觀看';
+            const btnText = item.type === 'manga' ? I18N[App.lang].btn_read : I18N[App.lang].btn_play;
+            playBtn.innerHTML = item.type === 'manga' ? `<i class="fa-solid fa-book-open"></i> ${btnText}` : `<i class="fa-solid fa-play"></i> ${btnText}`;
             
             playBtn.onclick = () => {
                 const epIdx = (item.lastEp || 1) - 1;
+                if (eps.length === 0) return alert("尚無連結資料");
                 UI.watch(item.id, eps[epIdx], item.lastEp || 1);
             };
         });
@@ -833,11 +1113,11 @@ const UI = {
         const modal = document.getElementById('modal-editor');
         modal.style.display = 'flex';
         
-        // 重置手動輸入框
         document.getElementById('manual-tag').value = '';
+        document.getElementById('ed-auto-url').value = ''; 
 
         if(!id) {
-            document.getElementById('ed-header').innerText = "新增作品";
+            document.getElementById('ed-header').innerText = I18N[App.lang].ed_header;
             document.getElementById('ed-id').value = "";
             document.getElementById('ed-title').value = "";
             document.getElementById('ed-img').value = "";
@@ -848,7 +1128,7 @@ const UI = {
             this.setEditDay("週一");
         } else {
             const item = App.dataList.find(i => i.id === id);
-            document.getElementById('ed-header').innerText = "編輯數據";
+            document.getElementById('ed-header').innerText = I18N[App.lang].ed_header;
             document.getElementById('ed-id').value = item.id;
             document.getElementById('ed-title').value = item.title;
             document.getElementById('ed-img').value = item.img;
@@ -861,7 +1141,7 @@ const UI = {
             this.setEditDay(item.day || "週一");
         }
         
-        this.toggleDateFields(); // 根據類型初始化日期欄位顯示
+        this.toggleDateFields();
         this.refreshTagOpts();
     },
 
@@ -872,20 +1152,24 @@ const UI = {
     },
 
     setupEditorInputs() {
+        const t = I18N[App.lang];
         const yearSel = document.getElementById('ed-year');
         const monthSel = document.getElementById('ed-month');
         const dayBox = document.getElementById('ed-day-opts');
         const tagBox = document.getElementById('ed-tag-opts');
 
-        for(let y=2026; y>=2000; y--) yearSel.innerHTML += `<option value="${y}">${y} 年</option>`;
-        for(let m=1; m<=12; m++) monthSel.innerHTML += `<option value="${m}月">${m} 月番</option>`;
+        yearSel.innerHTML = '';
+        monthSel.innerHTML = '';
+        dayBox.innerHTML = '';
+
+        for(let y=2026; y>=2000; y--) yearSel.innerHTML += `<option value="${y}">${y} ${t.year_s}</option>`;
+        for(let m=1; m<=12; m++) monthSel.innerHTML += `<option value="${m}月">${m} ${t.month_s}</option>`;
 
         CONSTANTS.WEEK_DAYS.forEach(d => {
             dayBox.innerHTML += `<div class="ep-btn" id="eday-${d}" onclick="UI.setEditDay('${d}')">${d}</div>`;
         });
 
-        // 預設標籤池
-        tagBox.innerHTML = ''; // 清空
+        tagBox.innerHTML = ''; 
         CONSTANTS.TAG_POOL.forEach(t => {
             const div = document.createElement('div');
             div.className = 'tag-pill';
@@ -895,18 +1179,24 @@ const UI = {
         });
     },
 
-    // 切換日期欄位顯示
+    // [修復] 動態控制 Grid 系統
     toggleDateFields() {
         const type = document.getElementById('ed-type').value;
+        const row = document.getElementById('row-date-config');
         const yearGroup = document.getElementById('group-year');
         const monthGroup = document.getElementById('group-month');
+        const cycleGroup = document.getElementById('group-cycle');
         
         if (type === 'manga') {
             yearGroup.style.display = 'none';
             monthGroup.style.display = 'none';
+            cycleGroup.style.display = 'none';
+            row.classList.add('mode-manga');
         } else {
             yearGroup.style.display = 'block';
             monthGroup.style.display = 'block';
+            cycleGroup.style.display = 'block';
+            row.classList.remove('mode-manga');
         }
     },
 
@@ -918,20 +1208,15 @@ const UI = {
     },
 
     toggleEditTag(el, t) {
-        // UI切換
         el.classList.toggle('active');
-        // 邏輯無需同步 App.selectedTags 陣列，儲存時直接讀取 DOM class 即可，這樣支援手動標籤
     },
 
-    // 新增手動標籤
     addManualTag() {
         const input = document.getElementById('manual-tag');
         const val = input.value.trim();
         if(!val) return;
 
         const tagBox = document.getElementById('ed-tag-opts');
-        
-        // 檢查是否已存在
         let exists = false;
         tagBox.querySelectorAll('.tag-pill').forEach(el => {
             if(el.innerText === val) {
@@ -942,10 +1227,9 @@ const UI = {
 
         if(!exists) {
             const div = document.createElement('div');
-            div.className = 'tag-pill active'; // 新增即選中
+            div.className = 'tag-pill active';
             div.innerText = val;
             div.onclick = () => div.classList.toggle('active');
-            // 插入到最前面
             tagBox.insertBefore(div, tagBox.firstChild);
         }
         
@@ -954,20 +1238,16 @@ const UI = {
 
     refreshTagOpts() {
         const tagBox = document.getElementById('ed-tag-opts');
-        // 先重置所有預設標籤的狀態
         tagBox.querySelectorAll('.tag-pill').forEach(el => el.classList.remove('active'));
         
-        // 對於每一個已選的標籤
         App.selectedTags.forEach(t => {
             let found = false;
-            // 嘗試在現有DOM中找
             tagBox.querySelectorAll('.tag-pill').forEach(el => {
                 if(el.innerText === t) {
                     el.classList.add('active');
                     found = true;
                 }
             });
-            // 如果是自定義標籤(不在池中)，則動態創建
             if(!found) {
                 const div = document.createElement('div');
                 div.className = 'tag-pill active';
@@ -1002,82 +1282,28 @@ const UI = {
     }
 };
 
-// 5. Banner GPU 性能控制器
 const Banner = {
-    isDragging: false,
-    startY: 0,
-    currentY: 0,
-    isEnabled: false,
-
+    isDragging: false, startY: 0, currentY: 0, isEnabled: false,
     loadSaved() {
         const savedPos = localStorage.getItem(CONSTANTS.STORAGE_KEYS.BANNER_POS + App.room);
         const savedImg = localStorage.getItem(CONSTANTS.STORAGE_KEYS.BANNER_IMG + App.room);
-        
-        if(savedPos) {
-            this.currentY = parseFloat(savedPos);
-            this.updateTransform();
-        }
-        if(savedImg) {
-            document.getElementById('hero-media').src = savedImg;
-        }
+        if(savedPos) { this.currentY = parseFloat(savedPos); this.updateTransform(); }
+        if(savedImg) document.getElementById('hero-media').src = savedImg;
     },
-
     toggleDrag() {
         this.isEnabled = !this.isEnabled;
         const btn = document.getElementById('drag-btn');
         const area = document.getElementById('hero-area');
-        
-        if(this.isEnabled) {
-            btn.style.background = 'var(--accent)';
-            btn.style.color = '#000';
-            area.classList.add('dragging');
-        } else {
-            btn.style.background = '';
-            btn.style.color = '';
-            area.classList.remove('dragging');
-        }
+        if(this.isEnabled) { btn.style.background = 'var(--accent)'; btn.style.color = '#000'; area.classList.add('dragging'); } 
+        else { btn.style.background = ''; btn.style.color = ''; area.classList.remove('dragging'); }
     },
-
-    startDrag(e) {
-        if(!this.isEnabled) return;
-        this.isDragging = true;
-        this.startY = e.clientY;
-        document.getElementById('hero-media').style.transition = 'none';
-    },
-
-    doDrag(e) {
-        if(!this.isDragging) return;
-        const delta = e.clientY - this.startY;
-        this.currentY += delta;
-        this.updateTransform();
-        this.startY = e.clientY;
-    },
-
-    endDrag() {
-        if(!this.isDragging) return;
-        this.isDragging = false;
-        localStorage.setItem(CONSTANTS.STORAGE_KEYS.BANNER_POS + App.room, this.currentY);
-        document.getElementById('hero-media').style.transition = '';
-    },
-
-    updateTransform() {
-        document.getElementById('hero-media').style.transform = `translateY(${this.currentY}px) translateZ(0)`;
-    },
-
-    handleFile(input) {
-        if(input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const data = e.target.result;
-                document.getElementById('hero-media').src = data;
-                localStorage.setItem(CONSTANTS.STORAGE_KEYS.BANNER_IMG + App.room, data);
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
+    startDrag(e) { if(!this.isEnabled) return; this.isDragging = true; this.startY = e.clientY; document.getElementById('hero-media').style.transition = 'none'; },
+    doDrag(e) { if(!this.isDragging) return; this.currentY += e.clientY - this.startY; this.updateTransform(); this.startY = e.clientY; },
+    endDrag() { if(!this.isDragging) return; this.isDragging = false; localStorage.setItem(CONSTANTS.STORAGE_KEYS.BANNER_POS + App.room, this.currentY); document.getElementById('hero-media').style.transition = ''; },
+    updateTransform() { document.getElementById('hero-media').style.transform = `translateY(${this.currentY}px) translateZ(0)`; },
+    handleFile(input) { if(input.files && input.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById('hero-media').src = e.target.result; localStorage.setItem(CONSTANTS.STORAGE_KEYS.BANNER_IMG + App.room, e.target.result); }; r.readAsDataURL(input.files[0]); } }
 };
 
-// 6. 聊天室控制器
 const Chat = {
     send() {
         const input = document.getElementById('chat-input');
@@ -1085,17 +1311,23 @@ const Chat = {
         if(!text) return;
 
         database.ref(`rooms/${App.room}/chat`).push({
-            u: App.user,
-            t: text,
-            ts: Date.now()
+            u: App.user, t: text, ts: Date.now()
         });
         input.value = "";
     },
 
-    render(data) {
+    render(data, isFirstLoad) {
         const box = document.getElementById('chat-messages');
         if(!data) return;
         
+        if (!isFirstLoad) {
+            const lastMsg = Object.values(data).pop();
+            const panel = document.getElementById('chat-hub');
+            if (lastMsg.u !== App.user && !panel.classList.contains('open')) {
+                Notifications.add(`[聊天] ${lastMsg.u}: ${lastMsg.t}`);
+            }
+        }
+
         box.innerHTML = Object.entries(data).map(([id, msg]) => `
             <div class="msg-bubble ${msg.u === App.user ? 'self' : 'peer'}">
                 <span class="sender">${msg.u}</span>
@@ -1106,7 +1338,6 @@ const Chat = {
     }
 };
 
-// 啟動聖域
 App.init();
 
 </script>
