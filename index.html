@@ -1,1345 +1,640 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>ANIWORLD | SYSTEM V24.2</title>
     
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              accent: '#00f2ff',
+              'accent-pink': '#ff00c1',
+              'bg-dark': '#05060f',
+              'bg-canvas': '#0a0b18',
+              'panel-bg': 'rgba(15, 16, 32, 0.98)',
+              'card-surface': 'rgba(255, 255, 255, 0.06)',
+            },
+            fontFamily: {
+              sans: ['Outfit', 'Noto Sans TC', 'sans-serif'],
+            },
+            screens: {
+              'xs': '480px', // Custom breakpoint for large phones
+            }
+          }
+        }
+      }
+    </script>
+
+    <!-- 2. Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- 3. React & Babel (For running JSX in browser without build step) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 4. Firebase Compat -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-bg-dark text-white font-sans antialiased overflow-x-hidden selection:bg-accent selection:text-black">
+    <div id="root"></div>
 
-    <style>
-        /* =========================================
-           1. 全域變數與主題定義
-           ========================================= */
-        :root {
-            --accent: #00f2ff;
-            --accent-pink: #ff00c1;
-            --accent-glow: rgba(0, 242, 255, 0.4);
-            --bg-dark: #05060f;
-            --bg-canvas: #0a0b18;
-            --panel-bg: rgba(15, 16, 32, 0.98);
-            --text-main: #ffffff;
-            --text-sub: #a0aec0;
-            --border-color: rgba(255, 255, 255, 0.12);
-            --card-surface: rgba(255, 255, 255, 0.06);
-            --radius-ui: 24px;
-            --e-out: cubic-bezier(0.22, 1, 0.36, 1);
-        }
+    <!-- MAIN APPLICATION SCRIPT -->
+    <script type="text/babel">
+      const { useState, useEffect, useRef } = React;
 
-        body.light-mode {
-            --bg-dark: #f0f2f5;
-            --bg-canvas: #ffffff;
-            --panel-bg: rgba(255, 255, 255, 0.98);
-            --text-main: #1a1b26;
-            --text-sub: #4a5568;
-            --border-color: rgba(0, 0, 0, 0.1);
-            --card-surface: #ffffff;
-            --accent-glow: rgba(0, 242, 255, 0.2);
-        }
+      // --- Firebase Service ---
+      const firebaseConfig = {
+          apiKey: "AIzaSyB_LCa3ZOmcALbxw5SFjx78DzDD3mopXV4",
+          databaseURL: "https://aniworld-e53fb-default-rtdb.asia-southeast1.firebasedatabase.app/"
+      };
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body {
-            margin: 0; padding: 0; background: var(--bg-dark); color: var(--text-main);
-            font-family: 'Outfit', 'Noto Sans TC', sans-serif; overflow-x: hidden; line-height: 1.6; font-size: 18px;
-        }
+      let db = null;
+      const getDb = () => {
+          if (!firebase.apps.length) {
+              firebase.initializeApp(firebaseConfig);
+          }
+          if (!db) db = firebase.database();
+          return db;
+      };
 
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+      // --- Constants ---
+      const WEEK_DAYS = ["週一", "週二", "週三", "週四", "週五", "週六", "週日", "完結"];
+      const TAG_POOL = ["熱血", "冒險", "校園", "戀愛", "異世界", "奇幻", "日常", "懸疑", "百合", "耽美", "戰鬥", "美食", "機甲", "治癒", "後宮", "肉番", "運動", "智鬥", "科幻", "搞笑", "溫馨", "暗黑", "魔法", "偶像", "驚悚"];
 
-        /* =========================================
-           2. 開機動畫
-           ========================================= */
-        #boot-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 9999;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            transition: opacity 0.8s ease-out;
-        }
-        .boot-loader {
-            width: 80px; height: 80px; border: 5px solid rgba(0, 242, 255, 0.2);
-            border-top: 5px solid var(--accent); border-radius: 50%;
-            animation: spin 1s linear infinite; margin-bottom: 20px;
-        }
-        .boot-text {
-            font-family: monospace; color: var(--accent); font-size: 1.2rem;
-            letter-spacing: 2px; animation: blink 1.5s infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes blink { 50% { opacity: 0.5; } }
+      // --- Helper Components ---
+      const Badge = ({ children, active }) => (
+        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${active ? 'bg-accent text-black' : 'bg-white/10 text-white'}`}>
+          {children}
+        </span>
+      );
 
-        /* =========================================
-           3. 導航欄設計
-           ========================================= */
-        header {
-            position: fixed; top: 0; left: 0; width: 100%; height: 95px;
-            background: var(--panel-bg); backdrop-filter: blur(25px) saturate(180%);
-            z-index: 2000; display: flex; align-items: center; justify-content: space-between;
-            padding: 0 4%; border-bottom: 1px solid var(--border-color); transition: all 0.4s var(--e-out);
-        }
+      const Tag = ({ label, active, onClick }) => (
+        <button
+          onClick={onClick}
+          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border ${
+            active 
+              ? 'bg-accent-pink border-accent-pink text-white shadow-[0_0_10px_rgba(255,0,193,0.4)]' 
+              : 'bg-card-surface border-white/10 text-gray-400 hover:border-accent hover:text-accent'
+          }`}
+        >
+          {label}
+        </button>
+      );
 
-        .logo-group { display: flex; align-items: center; gap: 20px; }
-        .logo-text {
-            font-size: 2.5rem; font-weight: 900; letter-spacing: -3px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-pink));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            cursor: pointer; user-select: none;
-        }
-        .room-badge {
-            background: rgba(0, 242, 255, 0.08); border: 1px solid var(--accent); color: var(--accent);
-            padding: 6px 16px; border-radius: 50px; font-size: 0.8rem; font-weight: 800; letter-spacing: 1px;
-        }
-
-        .nav-menu {
-            display: flex; background: rgba(0, 0, 0, 0.15); padding: 6px;
-            border-radius: 50px; border: 1px solid var(--border-color); gap: 5px;
-        }
-        .nav-link {
-            padding: 10px 24px; border-radius: 40px; color: var(--text-sub);
-            font-weight: 800; font-size: 0.9rem; cursor: pointer; transition: 0.3s var(--e-out);
-            border: 1px solid transparent;
-        }
-        .nav-link:hover { color: var(--text-main); }
-        .nav-link.active {
-            background: var(--accent); color: #000; box-shadow: 0 4px 15px var(--accent-glow);
-        }
-
-        .header-actions { display: flex; align-items: center; gap: 20px; font-size: 1.3rem; }
-        .action-icon { cursor: pointer; transition: 0.2s; color: var(--text-sub); position: relative;}
-        .action-icon:hover { color: var(--accent); transform: scale(1.1); }
+      // --- Main App Component ---
+      function App() {
+        // State
+        const [loading, setLoading] = useState(true);
+        const [dataList, setDataList] = useState([]);
+        const [chatMessages, setChatMessages] = useState([]);
         
-        .badge-dot {
-            position: absolute; top: -2px; right: -2px; width: 10px; height: 10px;
-            background: #ff4444; border-radius: 50%; display: none;
-            box-shadow: 0 0 10px #ff4444;
-        }
-
-        .lang-btn {
-            font-size: 0.9rem; font-weight: 800; border: 1px solid var(--border-color);
-            padding: 5px 12px; border-radius: 8px; cursor: pointer; color: var(--text-sub);
-            transition: 0.3s;
-        }
-        .lang-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-        .user-avatar-wrap { position: relative; width: 45px; height: 45px; cursor: pointer; }
-        .user-avatar {
-            width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
-            border: 2px solid var(--accent); transition: 0.3s;
-        }
-        .user-avatar:hover { box-shadow: 0 0 15px var(--accent-glow); }
-
-        /* =========================================
-           4. 英雄區塊 & 搜尋功能
-           ========================================= */
-        .hero-viewport {
-            position: relative; width: 100%; height: 580px; overflow: hidden; background: #000; margin-top: 0;
-        }
-        #hero-media {
-            width: 100%; height: auto; min-height: 100%; position: absolute;
-            top: 0; left: 0; will-change: transform; pointer-events: none;
-        }
-        .hero-mask {
-            position: absolute; inset: 0;
-            background: linear-gradient(0deg, var(--bg-dark) 5%, rgba(5, 6, 15, 0.2) 50%, transparent 100%);
-            z-index: 5; pointer-events: none;
-        }
-        .hero-content {
-            position: absolute; bottom: 100px; left: 6%; z-index: 10; pointer-events: none;
-        }
-        .hero-title {
-            font-size: 5.5rem; font-weight: 900; line-height: 0.85; margin: 0;
-            letter-spacing: -5px; text-transform: uppercase;
-        }
-        .hero-subtitle {
-            font-size: 2.2rem; font-weight: 400; opacity: 0.7; letter-spacing: 6px;
-            display: block; margin-top: 10px;
-        }
+        // Navigation & Filtering
+        const [currentTab, setCurrentTab] = useState('home');
+        const [searchTerm, setSearchTerm] = useState('');
+        const [activeFilterTag, setActiveFilterTag] = useState('全部');
+        const [room, setRoom] = useState('');
+        const [user, setUser] = useState('');
         
-        .search-container {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            z-index: 20; width: 90%; max-width: 600px;
-        }
-        .search-input {
-            width: 100%; padding: 15px 30px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); color: #fff; font-size: 1.1rem;
-            outline: none; transition: 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center;
-        }
-        .search-input:focus { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
+        // UI State
+        const [isChatOpen, setIsChatOpen] = useState(false);
+        const [chatInput, setChatInput] = useState('');
+        const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+        const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+        const [selectedItem, setSelectedItem] = useState(null);
 
-        .hero-controls {
-            position: absolute; bottom: 105px; right: 5%; display: flex; gap: 12px; z-index: 20;
-        }
-        .btn-mini {
-            padding: 10px 20px; border-radius: 50px; font-size: 0.85rem; font-weight: 800;
-            cursor: pointer; border: 1px solid var(--border-color); background: rgba(0, 0, 0, 0.4);
-            color: #fff; backdrop-filter: blur(10px); display: flex; align-items: center; gap: 8px;
-            transition: 0.3s var(--e-out);
-        }
-        .btn-mini:hover {
-            background: var(--accent); color: #000; border-color: var(--accent); transform: translateY(-3px);
-        }
-        .hero-viewport.dragging { cursor: ns-resize; }
+        // Editor State
+        const [editForm, setEditForm] = useState({});
+        const [editDay, setEditDay] = useState('週一');
+        const [editLinksRaw, setEditLinksRaw] = useState('');
 
-        /* =========================================
-           5. 內容網格
-           ========================================= */
-        main { padding: 40px 5%; background: var(--bg-canvas); }
-        .filter-container { margin-bottom: 40px; }
-        .tag-wrap { display: flex; gap: 12px; flex-wrap: wrap; }
-        .tag-pill {
-            padding: 10px 24px; border-radius: 50px; background: var(--card-surface);
-            border: 1px solid var(--border-color); font-size: 0.95rem; font-weight: 700;
-            color: var(--text-sub); cursor: pointer; transition: 0.3s var(--e-out);
-        }
-        .tag-pill:hover { border-color: var(--accent); color: var(--accent); }
-        .tag-pill.active {
-            background: var(--accent-pink); color: #fff; border-color: var(--accent-pink);
-            box-shadow: 0 8px 20px rgba(255, 0, 193, 0.3);
-        }
+        // Refs
+        const chatBottomRef = useRef(null);
+        const bannerRef = useRef(null);
 
-        .ani-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 40px;
-        }
-        .ani-node {
-            background: var(--card-surface); border-radius: 18px; overflow: hidden;
-            border: 1px solid var(--border-color); transition: 0.4s var(--e-out);
-            position: relative; cursor: pointer;
-        }
-        .ani-node:hover {
-            transform: translateY(-12px); border-color: var(--accent);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-        }
-        .ani-poster {
-            width: 100%; aspect-ratio: 3 / 4.2; object-fit: cover;
-            border-radius: 0 !important; transition: 0.5s var(--e-out);
-        }
-        .ani-node:hover .ani-poster { transform: scale(1.05); }
-        .ani-meta { padding: 22px; }
-        
-        .type-badge {
-            background: rgba(255, 255, 255, 0.1); padding: 2px 8px; border-radius: 4px;
-            font-size: 0.7rem; color: #fff; margin-right: 8px; vertical-align: middle;
-        }
-        .ani-label {
-            color: var(--accent); font-weight: 900; font-size: 0.8rem;
-            text-transform: uppercase; letter-spacing: 1px;
-        }
-        .ani-name {
-            font-size: 1.25rem; font-weight: 800; margin-top: 8px; white-space: nowrap;
-            overflow: hidden; text-overflow: ellipsis; color: var(--text-main);
-        }
-        .fav-hit {
-            position: absolute; top: 15px; right: 15px; width: 42px; height: 42px;
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; z-index: 10;
-            opacity: 0; transform: scale(0.8); transition: 0.3s var(--e-out);
-        }
-        .ani-node:hover .fav-hit { opacity: 1; transform: scale(1); }
-        .fav-hit.active { opacity: 1; transform: scale(1); color: var(--accent-pink); }
+        // --- Initialization ---
+        useEffect(() => {
+          let storedRoom = localStorage.getItem('ani_v24_room');
+          let storedUser = localStorage.getItem('ani_v24_user');
 
-        /* =========================================
-           6. 聊天室與側邊欄
-           ========================================= */
-        .side-panel {
-            position: fixed; width: 400px; height: 600px; background: var(--panel-bg);
-            border-radius: 35px; border: 1px solid var(--border-color);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.6); z-index: 3000;
-            display: flex; flex-direction: column; overflow: hidden; transition: 0.5s var(--e-out);
-        }
-        #notice-hub { top: 110px; right: 30px; transform: translateX(500px); }
-        #chat-hub { bottom: 30px; right: 30px; transform: translateY(700px); }
-        .side-panel.open { transform: translate(0, 0) !important; }
+          if (!storedRoom) {
+            storedRoom = prompt("聖域房號 (Room ID):")?.toUpperCase() || 'PUBLIC';
+            localStorage.setItem('ani_v24_room', storedRoom);
+          }
+          if (!storedUser) {
+            storedUser = prompt("冒險者稱號 (Username):") || '冒險者';
+            localStorage.setItem('ani_v24_user', storedUser);
+          }
+          setRoom(storedRoom);
+          setUser(storedUser);
 
-        .panel-head {
-            padding: 20px 30px; border-bottom: 1px solid var(--border-color);
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.2);
-        }
-        .panel-head h3 { margin: 0; font-weight: 900; letter-spacing: 1px; }
+          const database = getDb();
+          const dataRef = database.ref(`rooms/${storedRoom}/data`);
+          const chatRef = database.ref(`rooms/${storedRoom}/chat`).limitToLast(50);
 
-        .chat-body {
-            flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
-        }
-        .notice-item {
-            padding: 15px; border-bottom: 1px solid var(--border-color);
-            font-size: 0.9rem; color: var(--text-sub);
-        }
-        .notice-item strong { color: var(--accent); }
+          dataRef.on('value', (snap) => {
+            const val = snap.val();
+            const list = val ? Object.values(val) : [];
+            setDataList(list);
+            setLoading(false);
+          });
 
-        .msg-bubble {
-            padding: 12px 18px; border-radius: 18px; font-size: 0.95rem;
-            max-width: 80%; word-break: break-all; line-height: 1.5; position: relative;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .msg-bubble .sender {
-            font-size: 0.75rem; opacity: 0.7; margin-bottom: 4px; font-weight: 700; display: block;
-        }
-        .msg-bubble.self {
-            background: linear-gradient(135deg, var(--accent), #00c3ff);
-            color: #000; align-self: flex-end; border-bottom-right-radius: 4px;
-        }
-        .msg-bubble.peer {
-            background: var(--card-surface); color: var(--text-main); align-self: flex-start;
-            border-bottom-left-radius: 4px; border: 1px solid var(--border-color);
-        }
+          chatRef.on('value', (snap) => {
+            const val = snap.val();
+            const msgs = val ? Object.entries(val).map(([k, v]) => ({ ...v, id: k })) : [];
+            setChatMessages(msgs);
+          });
 
-        .chat-footer {
-            padding: 15px 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px;
-            background: rgba(0,0,0,0.2);
-        }
-        .input-dark {
-            flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color);
-            padding: 12px 20px; border-radius: 15px; color: #fff; outline: none;
-        }
+          return () => {
+            dataRef.off();
+            chatRef.off();
+          };
+        }, []);
 
-        /* =========================================
-           7. 模態視窗 (優化版)
-           ========================================= */
-        .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 5000;
-            display: none; align-items: center; justify-content: center;
-            backdrop-filter: blur(20px); padding: 20px;
-        }
-        
-        /* 一般卡片 (詳情頁) */
-        .modal-card {
-            width: 100%; max-width: 1300px; height: 88vh; background: var(--bg-dark);
-            border-radius: 40px; border: 1px solid var(--border-color); display: flex;
-            overflow: hidden; animation: modalPop 0.5s var(--e-out);
-        }
+        useEffect(() => {
+          if (isChatOpen && chatBottomRef.current) {
+            chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, [chatMessages, isChatOpen]);
 
-        /* [修復] 編輯器專用卡片樣式：固定頭尾，中間捲動 */
-        .modal-card.editor-mode {
-            max-width: 900px; 
-            height: 90vh; /* 固定高度 */
-            flex-direction: column;
-            padding: 0; /* 移除內距，交給子元素 */
-        }
+        // --- Computed Data ---
+        const filteredData = dataList.filter(item => {
+          if (currentTab === 'anime' && item.type === 'manga') return false;
+          if (currentTab === 'manga' && item.type !== 'manga') return false;
+          if (currentTab === 'fav' && !item.fav) return false;
+          if (currentTab === 'hist' && !item.lastEp) return false;
+          if (searchTerm && !item.title.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+          if (activeFilterTag !== '全部' && !item.tags?.includes(activeFilterTag)) return false;
+          return true;
+        }).sort((a, b) => b.timestamp - a.timestamp);
 
-        .editor-header {
-            padding: 30px 40px; border-bottom: 1px solid var(--border-color);
-            background: rgba(0,0,0,0.3); flex-shrink: 0;
-        }
-        .editor-body {
-            padding: 40px; overflow-y: auto; flex: 1; /* 佔滿剩餘空間並捲動 */
-        }
-        .editor-footer {
-            padding: 20px 40px; border-top: 1px solid var(--border-color);
-            background: rgba(0,0,0,0.3); flex-shrink: 0; display: flex; gap: 20px;
-        }
+        // --- Handlers ---
+        const handleChatSend = () => {
+          if (!chatInput.trim()) return;
+          getDb().ref(`rooms/${room}/chat`).push({
+            u: user,
+            t: chatInput,
+            ts: Date.now()
+          });
+          setChatInput('');
+        };
 
-        @keyframes modalPop {
-            from { transform: scale(0.9) translateY(30px); opacity: 0; }
-            to { transform: scale(1) translateY(0); opacity: 1; }
-        }
-        
-        .modal-visual {
-            flex: 1.3; background: #000; position: relative; display: flex; align-items: center; justify-content: center;
-        }
-        .modal-poster {
-            max-width: 85%; max-height: 85%; object-fit: contain; z-index: 5;
-            border-radius: 0 !important; box-shadow: 0 30px 60px rgba(0,0,0,0.8);
-        }
-        .modal-bg-blur {
-            position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.3; filter: blur(40px);
-        }
-        .modal-content {
-            flex: 1; padding: 50px; overflow-y: auto; background: var(--bg-dark);
-        }
-        .ep-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
-            gap: 30px; margin-top: 12px;
-        }
-        .ep-btn {
-            background: var(--card-surface); border: 1px solid var(--border-color);
-            padding: 12px; text-align: center; border-radius: 14px; cursor: pointer;
-            font-weight: 800; transition: 0.2s;
-        }
-        .ep-btn:hover, .ep-btn.active {
-            background: var(--accent); color: #000; border-color: var(--accent);
-        }
+        const toggleFav = (e, item) => {
+          e.stopPropagation();
+          const newState = !item.fav;
+          getDb().ref(`rooms/${room}/data/${item.id}`).update({ fav: newState });
+        };
 
-        /* 編輯器內部元件 */
-        .editor-container {
-            display: flex; flex-direction: column; gap: 20px;
-        }
-        .editor-row {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
-        }
-        
-        .editor-row.triple { grid-template-columns: 1fr 1fr 1fr; }
-        .editor-row.triple.mode-manga { grid-template-columns: 1fr; } /* 漫畫模式強制單欄 */
+        const handleOpenDetail = (item) => {
+          setSelectedItem(item);
+          setIsDetailModalOpen(true);
+        };
 
-        .editor-label {
-            display: block; margin-bottom: 8px; font-weight: 700; color: var(--text-sub); font-size: 0.95rem;
-        }
-        .manual-tag-input {
-            display: flex; gap: 10px; margin-bottom: 10px;
-        }
-        
-        .auto-fetch-row {
-            display: flex; gap: 10px; margin-bottom: 25px; 
-            padding-bottom: 25px; border-bottom: 1px solid var(--border-color);
-            align-items: flex-end; flex-wrap: wrap;
-        }
-        .btn-fetch {
-            background: linear-gradient(135deg, #7928ca, #ff0080);
-            color: #fff; border: none; white-space: nowrap;
-        }
-        .btn-fetch:hover {
-            box-shadow: 0 0 15px rgba(255, 0, 128, 0.4);
-        }
+        const handleOpenEdit = (item) => {
+          if (item) {
+            setSelectedItem(item);
+            setEditForm(item);
+            setEditDay(item.day || '週一');
+            setEditLinksRaw(item.links?.join('\n') || '');
+          } else {
+            setSelectedItem(null);
+            setEditForm({ 
+              id: Date.now().toString(), 
+              type: 'anime', 
+              tags: [],
+              year: '2025',
+              month: '1月'
+            });
+            setEditDay('週一');
+            setEditLinksRaw('');
+          }
+          setIsDetailModalOpen(false);
+          setIsEditModalOpen(true);
+        };
 
-        /* 標籤區與連結區優化 */
-        #ed-tag-opts {
-            display: flex; flex-wrap: wrap; gap: 10px; padding: 15px;
-            background: rgba(255, 255, 255, 0.05); border-radius: 12px;
-            max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color);
-        }
-        #ed-tag-opts div {
-            padding: 6px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color);
-            border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.85rem;
-        }
-        #ed-links {
-            height: 150px; font-family: monospace; font-size: 0.85rem;
-            background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); resize: none;
-        }
+        const handleSaveData = () => {
+          if (!editForm.title) return alert("請輸入標題");
+          
+          const id = editForm.id || Date.now().toString();
+          const payload = {
+            ...editForm,
+            id,
+            day: editDay,
+            links: editLinksRaw.split('\n').filter(l => l.trim()),
+            timestamp: Date.now()
+          };
 
-        /* 響應式調整 */
-        @media (max-width: 1024px) {
-            .modal-card { flex-direction: column; height: 95vh; width: 96%; max-width: 600px; }
-            .modal-visual { height: 250px; }
-            .modal-content { padding: 25px 20px; }
-            .hero-title { font-size: 1.8rem; }
-            .side-panel { width: 92%; right: 4%; }
-            #ed-tag-opts { flex-wrap: wrap; gap: 10px; max-height: 220px; }
+          getDb().ref(`rooms/${room}/data/${id}`).update(payload);
+          setIsEditModalOpen(false);
+        };
+
+        const handleDelete = () => {
+          if (!editForm.id || !confirm("確定刪除?")) return;
+          getDb().ref(`rooms/${room}/data/${editForm.id}`).remove();
+          setIsEditModalOpen(false);
+        };
+
+        const handleFetchMeta = async () => {
+          const url = prompt("請輸入網站 URL:");
+          if (!url) return;
+          
+          const btn = document.getElementById('fetch-btn');
+          if(btn) btn.innerText = "Loading...";
+
+          try {
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+            const res = await fetch(proxyUrl);
+            const html = await res.text();
+            const doc = new DOMParser().parseFromString(html, "text/html");
+
+            const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || doc.title;
+            const ogImg = doc.querySelector('meta[property="og:image"]')?.getAttribute('content');
             
-            /* 手機版強制單欄 */
-            .editor-row, .editor-row.triple { grid-template-columns: 1fr !important; gap: 15px; }
-            .auto-fetch-row { flex-direction: column; align-items: stretch; }
+            if (ogTitle) setEditForm(prev => ({ ...prev, title: ogTitle.split(' - ')[0] }));
+            if (ogImg) {
+               let finalImg = ogImg;
+               if(ogImg.startsWith('/')) {
+                   finalImg = new URL(url).origin + ogImg;
+               }
+               setEditForm(prev => ({ ...prev, img: finalImg }));
+            }
+            if (!editLinksRaw) setEditLinksRaw(`第01集|${url}`);
+
+          } catch (e) {
+            alert("抓取失敗");
+          } finally {
+            if(btn) btn.innerText = "智能抓取";
+          }
+        };
+
+        const openLink = (item, linkStr, index) => {
+            const url = linkStr.includes('|') ? linkStr.split('|')[1] : linkStr;
+            getDb().ref(`rooms/${room}/data/${item.id}`).update({ lastEp: index + 1, timestamp: Date.now() });
+            window.open(url, '_blank');
+        };
+
+        // --- Render ---
+
+        if (loading) {
+          return (
+            <div className="flex flex-col items-center justify-center h-screen bg-bg-dark">
+              <div className="w-16 h-16 border-4 border-accent/20 border-t-accent rounded-full animate-spin mb-4"></div>
+              <div className="text-accent tracking-widest animate-pulse">SYSTEM INITIALIZING...</div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="min-h-screen pb-24 md:pb-0">
             
-            .editor-header, .editor-body, .editor-footer { padding: 20px; }
-        }
+            {/* Header */}
+            <header className="fixed top-0 left-0 w-full z-40 bg-panel-bg/80 backdrop-blur-md border-b border-white/10 h-16 flex items-center justify-between px-4 transition-all">
+              <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-accent to-accent-pink cursor-pointer" onClick={() => window.location.reload()}>
+                      ANIWORLD
+                  </h1>
+                  <span className="hidden sm:block text-[10px] bg-accent/10 border border-accent text-accent px-2 py-0.5 rounded-full font-bold">
+                      #{room}
+                  </span>
+              </div>
+              <div className="flex items-center gap-4">
+                  <i className="fa-solid fa-magnifying-glass text-gray-400 sm:hidden" onClick={() => document.getElementById('search-bar')?.focus()}></i>
+                  <div className="hidden sm:block relative">
+                      <input 
+                          type="text" 
+                          placeholder="Search..." 
+                          className="bg-black/40 border border-white/20 rounded-full py-1.5 px-4 text-sm w-48 focus:border-accent focus:outline-none focus:w-64 transition-all"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                  </div>
+                  <div className="relative cursor-pointer" onClick={() => setIsChatOpen(true)}>
+                      <i className="fa-solid fa-bell text-gray-400 hover:text-accent transition-colors"></i>
+                  </div>
+                  <div className="w-8 h-8 rounded-full border border-accent overflow-hidden">
+                      <img src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${user}`} alt="User" />
+                  </div>
+              </div>
+            </header>
 
-        /* FABs */
-        .fab-trigger {
-            position: fixed; bottom: 40px; right: 130px; width: 60px; height: 60px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-pink));
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 2rem; color: #fff; cursor: pointer; z-index: 2500;
-            box-shadow: 0 10px 30px rgba(0, 242, 255, 0.4); transition: 0.4s var(--e-out);
-        }
-        .fab-trigger:hover { transform: rotate(90deg) scale(1.1); }
-        .chat-fab {
-            position: fixed; bottom: 40px; right: 40px; width: 60px; height: 60px;
-            background: var(--accent); border-radius: 50%; display: flex; align-items: center;
-            justify-content: center; font-size: 1.8rem; color: #000; cursor: pointer;
-            z-index: 2500; box-shadow: 0 10px 30px var(--accent-glow);
-        }
+            {/* Hero Section */}
+            <section className="relative w-full h-[30vh] sm:h-[45vh] mt-16 overflow-hidden group">
+              <img 
+                  ref={bannerRef}
+                  src="https://images.alphacoders.com/133/1339031.png" 
+                  className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" 
+                  alt="Banner" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-bg-dark via-bg-dark/50 to-transparent"></div>
+              <div className="absolute bottom-6 left-4 sm:left-10 right-4">
+                  <h2 className="text-4xl sm:text-6xl font-black uppercase leading-none tracking-tighter mb-2">
+                      System <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-accent-pink">V24.2</span>
+                  </h2>
+                  <div className="sm:hidden mt-4 relative">
+                      <input 
+                          id="search-bar"
+                          type="text" 
+                          placeholder="搜尋..." 
+                          className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-xl py-2 px-4 text-base text-white focus:border-accent outline-none"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                      <i className="fa-solid fa-search absolute right-4 top-3 text-gray-400"></i>
+                  </div>
+              </div>
+            </section>
 
-        /* 歷史紀錄篩選按鈕容器 */
-        #hist-controls {
-            display: none; 
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 30px;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .hist-btn {
-            padding: 10px 25px;
-            border-radius: 50px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            color: var(--text-sub);
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .hist-btn:hover { border-color: var(--accent); color: var(--text-main); }
-        .hist-btn.active {
-            background: var(--accent);
-            color: #000;
-            box-shadow: 0 0 15px var(--accent-glow);
-            border-color: var(--accent);
-        }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
-</head>
-<body onmouseup="Banner.endDrag()" onmouseleave="Banner.endDrag()">
-
-<div id="boot-screen">
-    <div class="boot-loader"></div>
-    <div class="boot-text">SYSTEM INITIALIZING...</div>
-</div>
-
-<header id="main-header">
-    <div class="logo-group">
-        <div class="logo-text" onclick="location.reload()">ANIWORLD</div>
-        <div id="room-display" class="room-badge">CONNECTING...</div>
-    </div>
-    
-    <nav class="nav-menu">
-        <div class="nav-link active" id="nav-home" onclick="App.setTab('home')" data-lang="nav_home">首頁</div>
-        <div class="nav-link" id="nav-anime" onclick="App.setTab('anime')" data-lang="nav_anime">動畫庫</div>
-        <div class="nav-link" id="nav-manga" onclick="App.setTab('manga')" data-lang="nav_manga">漫畫庫</div>
-        <div class="nav-link" id="nav-fav" onclick="App.setTab('fav')" data-lang="nav_fav">我的收藏</div>
-        <div class="nav-link" id="nav-hist" onclick="App.setTab('hist')" data-lang="nav_hist">觀看紀錄</div>
-    </nav>
-
-    <div class="header-actions">
-        <div class="lang-btn" onclick="App.toggleLang()" id="lang-display">ZH</div>
-        <i class="fa-solid fa-moon action-icon" onclick="UI.toggleTheme()"></i>
-        <div style="position:relative;">
-            <i class="fa-solid fa-bell action-icon" onclick="Notifications.open()"></i>
-            <div id="notice-dot" class="badge-dot"></div>
-        </div>
-        
-        <div class="user-avatar-wrap" onclick="UI.triggerAvatarUpload()">
-            <img id="current-avatar" class="user-avatar" src="https://via.placeholder.com/150" alt="Avatar">
-        </div>
-        <input type="file" id="avatar-upload" hidden accept="image/*" onchange="App.handleAvatarUpload(this)">
-        
-        <i class="fa-solid fa-right-from-bracket action-icon" style="color:#ff4444;" onclick="App.logout()"></i>
-    </div>
-</header>
-
-<section class="hero-viewport" id="hero-area" onmousedown="Banner.startDrag(event)" onmousemove="Banner.doDrag(event)">
-    <img id="hero-media" src="https://images.alphacoders.com/133/1339031.png">
-    <div class="hero-mask"></div>
-    <div class="hero-content">
-        <h1 class="hero-title">ANIWORLD<br><span class="hero-subtitle">V24.2 SYSTEM</span></h1>
-    </div>
-    
-    <div class="search-container">
-        <input type="text" class="search-input" placeholder="搜尋作品名稱..." oninput="App.handleSearch(this.value)" data-lang-ph="search_ph">
-    </div>
-
-    <div class="hero-controls">
-        <button class="btn-mini" onclick="UI.triggerUpload()"><i class="fa-solid fa-camera"></i> <span data-lang="btn_cover">封面更換</span></button>
-        <button class="btn-mini" id="drag-btn" onclick="Banner.toggleDrag()"><i class="fa-solid fa-arrows-up-down"></i> <span data-lang="btn_pos">位置調整</span></button>
-        <input type="file" id="banner-upload" hidden accept="image/*" onchange="Banner.handleFile(this)">
-    </div>
-</section>
-
-<main>
-    <div class="filter-container">
-        <div class="tag-wrap" id="tag-cloud"></div>
-    </div>
-
-    <div id="hist-controls">
-        <div class="hist-btn active" onclick="App.setHistType('all', this)"><i class="fa-solid fa-layer-group"></i> <span data-lang="filter_all">全部</span></div>
-        <div class="hist-btn" onclick="App.setHistType('anime', this)"><i class="fa-solid fa-film"></i> <span data-lang="filter_anime">動畫</span></div>
-        <div class="hist-btn" onclick="App.setHistType('manga', this)"><i class="fa-solid fa-book-open"></i> <span data-lang="filter_manga">漫畫</span></div>
-    </div>
-
-    <div class="ani-grid" id="main-grid"></div>
-</main>
-
-<div id="notice-hub" class="side-panel">
-    <div class="panel-head"><h3 data-lang="panel_notice">系統公告</h3><i class="fa-solid fa-xmark action-icon" onclick="UI.togglePanel('notice-hub')"></i></div>
-    <div id="notice-list" class="chat-body" style="padding-top:0;">
-        <div style="text-align:center; padding:20px; opacity:0.5;" data-lang="no_notice">目前沒有新的通知</div>
-    </div>
-</div>
-
-<div id="chat-hub" class="side-panel">
-    <div class="panel-head"><h3 data-lang="panel_chat">聖域頻道</h3><i class="fa-solid fa-xmark action-icon" onclick="UI.togglePanel('chat-hub')"></i></div>
-    <div id="chat-messages" class="chat-body"></div>
-    <div class="chat-footer">
-        <input type="text" id="chat-input" class="input-dark" placeholder="輸入訊息..." onkeypress="if(event.key==='Enter') Chat.send()" data-lang-ph="chat_ph">
-        <button class="btn-mini" style="background:var(--accent); color:#000;" onclick="Chat.send()"><i class="fa-solid fa-paper-plane"></i></button>
-    </div>
-</div>
-
-<div class="fab-trigger" onclick="UI.openEdit(null)"><i class="fa-solid fa-plus"></i></div>
-<div class="chat-fab" onclick="UI.togglePanel('chat-hub')"><i class="fa-solid fa-comment-dots"></i></div>
-
-<div id="modal-view" class="modal-overlay" onclick="if(event.target==this) UI.closeModals()">
-    <div class="modal-card">
-        <div class="modal-visual">
-            <img id="mv-blur" class="modal-bg-blur">
-            <img id="mv-poster" class="modal-poster">
-        </div>
-        <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <div>
-                    <h2 id="mv-title" style="font-size:3.5rem; margin:0; font-weight:900; line-height:1;">標題載入中</h2>
-                    <div id="mv-tags" style="display:flex; gap:10px; margin-top:25px;"></div>
-                </div>
-                <i id="mv-fav-icon" class="fa-solid fa-heart" style="font-size:2.5rem; cursor:pointer;" onclick="App.toggleFav()"></i>
+            {/* Filter Tags */}
+            <div className="px-4 py-4 overflow-x-auto no-scrollbar flex gap-2 sticky top-16 bg-bg-dark/95 z-30 backdrop-blur-sm border-b border-white/5">
+               <Tag label="全部" active={activeFilterTag === '全部'} onClick={() => setActiveFilterTag('全部')} />
+               {TAG_POOL.map(t => (
+                   <Tag key={t} label={t} active={activeFilterTag === t} onClick={() => setActiveFilterTag(t)} />
+               ))}
             </div>
-            <div style="margin-top:50px;">
-                <h3 style="color:var(--accent); font-size:1.5rem; border-left:4px solid var(--accent); padding-left:15px;" data-lang="ep_list">選集播放</h3>
-                <div id="mv-eps" class="ep-grid"></div>
-            </div>
-            <div style="margin-top:60px; padding-top:40px; border-top:1px solid var(--border-color); display:flex; gap:20px;">
-                <button id="mv-play-btn" class="btn-mini" style="flex:1; padding:20px; font-size:1.2rem; background:var(--accent); color:#000; border:none;"><i class="fa-solid fa-play"></i> <span data-lang="btn_play">立即觀看</span></button>
-                <button class="btn-mini" style="padding:20px 30px;" onclick="UI.switchToEdit()"><i class="fa-solid fa-gear"></i></button>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div id="modal-editor" class="modal-overlay" onclick="if(event.target==this) UI.closeModals()">
-    <div class="modal-card editor-mode">
-        <div class="editor-header">
-            <h2 id="ed-header" style="margin:0; font-size:2rem; font-weight:900;" data-lang="ed_header">數據維護中心</h2>
-        </div>
-        
-        <div class="editor-body">
-            <input type="hidden" id="ed-id">
-            <div class="editor-container">
-                <div class="auto-fetch-row">
-                    <div style="flex:1;">
-                        <label class="editor-label" style="color:var(--accent);" data-lang="ed_auto">智能抓取 (貼上網站連結)</label>
-                        <input type="text" id="ed-auto-url" class="input-dark" style="width:100%;" placeholder="https://...">
+            {/* Main Grid */}
+            <main className="p-3 sm:p-6 pb-24">
+              {/* 
+                  Mobile Portrait: grid-cols-3 (High Density)
+                  Large Phone/Landscape: grid-cols-4
+                  Tablet: grid-cols-5
+                  Desktop: grid-cols-6
+              */}
+              <div className="grid grid-cols-3 xs:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-6">
+                  {filteredData.map(item => (
+                      <div 
+                          key={item.id} 
+                          className="group relative bg-card-surface rounded-xl overflow-hidden border border-white/5 hover:border-accent hover:-translate-y-1 transition-all duration-300 cursor-pointer shadow-lg"
+                          onClick={() => handleOpenDetail(item)}
+                      >
+                          <div className="aspect-[3/4.2] overflow-hidden relative">
+                              <img src={item.img || 'https://via.placeholder.com/300x420?text=No+Img'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                              <button 
+                                  className={`absolute top-2 right-2 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center backdrop-blur-md transition-all ${item.fav ? 'bg-accent-pink text-white scale-110' : 'bg-black/40 text-white/50 hover:bg-white hover:text-black'}`}
+                                  onClick={(e) => toggleFav(e, item)}
+                              >
+                                  <i className="fa-solid fa-heart text-[10px] sm:text-xs"></i>
+                              </button>
+                              {item.lastEp && (
+                                  <div className="absolute bottom-2 right-2 bg-accent text-black text-[10px] font-black px-1.5 py-0.5 rounded">
+                                      EP{item.lastEp}
+                                  </div>
+                              )}
+                          </div>
+                          <div className="p-2 sm:p-3">
+                              <div className="flex items-center gap-1 mb-1">
+                                  <Badge>{item.type === 'manga' ? '漫' : '動'}</Badge>
+                                  {item.day && <span className="text-[9px] sm:text-[10px] text-gray-400">{item.day}</span>}
+                              </div>
+                              <h3 className="font-bold text-xs sm:text-sm text-white leading-tight line-clamp-1 group-hover:text-accent">
+                                  {item.title}
+                              </h3>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+              
+              {filteredData.length === 0 && (
+                  <div className="text-center py-20 text-gray-500">
+                      <i className="fa-solid fa-ghost text-4xl mb-4 opacity-50"></i>
+                      <p>No Data Found</p>
+                  </div>
+              )}
+            </main>
+
+            {/* Mobile Nav */}
+            <nav className="fixed bottom-0 left-0 w-full bg-panel-bg/95 backdrop-blur-xl border-t border-white/10 flex justify-around items-center h-16 sm:hidden z-50 pb-safe">
+              <button onClick={() => setCurrentTab('home')} className={`flex flex-col items-center gap-1 w-full h-full justify-center ${currentTab === 'home' ? 'text-accent' : 'text-gray-500'}`}>
+                  <i className="fa-solid fa-house text-lg"></i>
+                  <span className="text-[10px]">首頁</span>
+              </button>
+              <button onClick={() => setCurrentTab('anime')} className={`flex flex-col items-center gap-1 w-full h-full justify-center ${currentTab === 'anime' ? 'text-accent' : 'text-gray-500'}`}>
+                  <i className="fa-solid fa-film text-lg"></i>
+                  <span className="text-[10px]">動畫</span>
+              </button>
+              <div className="relative -top-5">
+                  <button 
+                      onClick={() => handleOpenEdit()}
+                      className="w-14 h-14 rounded-full bg-gradient-to-tr from-accent to-accent-pink shadow-[0_0_20px_rgba(0,242,255,0.4)] flex items-center justify-center text-white text-xl border-4 border-bg-dark"
+                  >
+                      <i className="fa-solid fa-plus"></i>
+                  </button>
+              </div>
+              <button onClick={() => setCurrentTab('manga')} className={`flex flex-col items-center gap-1 w-full h-full justify-center ${currentTab === 'manga' ? 'text-accent' : 'text-gray-500'}`}>
+                  <i className="fa-solid fa-book-open text-lg"></i>
+                  <span className="text-[10px]">漫畫</span>
+              </button>
+              <button onClick={() => setCurrentTab('fav')} className={`flex flex-col items-center gap-1 w-full h-full justify-center ${currentTab === 'fav' ? 'text-accent' : 'text-gray-500'}`}>
+                  <i className="fa-solid fa-heart text-lg"></i>
+                  <span className="text-[10px]">收藏</span>
+              </button>
+            </nav>
+
+            {/* Desktop FAB */}
+            <button 
+              onClick={() => handleOpenEdit()} 
+              className="hidden sm:flex fixed bottom-10 right-10 w-14 h-14 bg-accent hover:bg-white text-black rounded-full items-center justify-center shadow-lg shadow-accent/40 transition-all hover:scale-110 z-40"
+            >
+              <i className="fa-solid fa-plus text-xl"></i>
+            </button>
+
+            {/* Detail Modal */}
+            {isDetailModalOpen && selectedItem && (
+                <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4 bg-black/80 backdrop-blur-sm" onClick={() => setIsDetailModalOpen(false)}>
+                    <div 
+                      className="w-full sm:max-w-4xl bg-[#10111f] sm:rounded-3xl rounded-t-3xl border border-white/10 overflow-hidden flex flex-col sm:flex-row max-h-[90vh] sm:h-auto animate-slide-up"
+                      onClick={e => e.stopPropagation()}
+                    >
+                        <div className="relative w-full sm:w-1/3 h-64 sm:h-auto bg-black">
+                            <img src={selectedItem.img} className="w-full h-full object-cover opacity-60" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#10111f] to-transparent sm:bg-gradient-to-r"></div>
+                            <img src={selectedItem.img} className="absolute bottom-4 left-4 w-32 rounded-lg shadow-2xl border border-white/20 sm:hidden" />
+                        </div>
+                        
+                        <div className="flex-1 p-6 overflow-y-auto">
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                  <div className="flex gap-2 mb-2">
+                                      <Badge active>{selectedItem.type}</Badge>
+                                      <span className="text-xs text-gray-400">{selectedItem.year} {selectedItem.month}</span>
+                                  </div>
+                                  <h2 className="text-2xl sm:text-4xl font-black leading-none mb-4">{selectedItem.title}</h2>
+                                </div>
+                                <button onClick={() => handleOpenEdit(selectedItem)} className="w-10 h-10 rounded-full bg-white/5 hover:bg-accent hover:text-black flex items-center justify-center transition-colors">
+                                   <i className="fa-solid fa-gear"></i>
+                                </button>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 mb-8">
+                                {selectedItem.tags?.map(t => <span key={t} className="text-xs text-gray-400 border border-white/10 px-2 py-1 rounded">{t}</span>)}
+                            </div>
+
+                            <div className="border-t border-white/10 pt-6">
+                                <h3 className="text-accent font-bold mb-4 flex items-center gap-2">
+                                    <i className="fa-solid fa-layer-group"></i> 選集列表
+                                </h3>
+                                <div className="grid grid-cols-5 sm:grid-cols-6 gap-2 sm:gap-3">
+                                    {selectedItem.links?.map((link, idx) => (
+                                        <button 
+                                          key={idx}
+                                          onClick={() => openLink(selectedItem, link, idx)}
+                                          className={`py-2 sm:py-3 rounded-lg font-bold text-xs sm:text-sm transition-all border ${
+                                              (selectedItem.lastEp || 0) === idx + 1 
+                                              ? 'bg-accent text-black border-accent' 
+                                              : 'bg-white/5 border-white/5 hover:border-accent hover:text-accent'
+                                          }`}
+                                        >
+                                            {idx + 1}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <button class="btn-mini btn-fetch" onclick="App.fetchMeta()">
-                        <i class="fa-solid fa-bolt"></i> <span data-lang="btn_auto">一鍵帶入</span>
+                </div>
+            )}
+
+            {/* Editor Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-md">
+                   <div className="w-full h-full sm:h-auto sm:max-w-2xl bg-bg-dark sm:rounded-2xl border border-white/10 flex flex-col">
+                       <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
+                           <h3 className="font-bold text-lg"><i className="fa-solid fa-pen-to-square text-accent mr-2"></i> 數據維護</h3>
+                           <button onClick={() => setIsEditModalOpen(false)} className="w-8 h-8 rounded-full hover:bg-white/10"><i className="fa-solid fa-xmark"></i></button>
+                       </div>
+                       
+                       <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                           <div className="flex gap-2">
+                               <input 
+                                  className="flex-1 bg-black border border-white/20 rounded-lg px-4 py-2 text-sm focus:border-accent outline-none" 
+                                  placeholder="智能抓取網址..."
+                                  id="fetch-input" 
+                               />
+                               <button id="fetch-btn" onClick={handleFetchMeta} className="bg-gradient-to-r from-purple-600 to-pink-600 px-4 rounded-lg text-sm font-bold whitespace-nowrap">
+                                  <i className="fa-solid fa-bolt mr-1"></i> 抓取
+                               </button>
+                           </div>
+
+                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                               <div>
+                                   <label className="text-xs text-gray-500 font-bold block mb-1">標題</label>
+                                   <input value={editForm.title || ''} onChange={e => setEditForm({...editForm, title: e.target.value})} className="w-full bg-card-surface border border-white/10 rounded px-3 py-2 outline-none focus:border-accent" />
+                               </div>
+                               <div>
+                                   <label className="text-xs text-gray-500 font-bold block mb-1">封面 URL</label>
+                                   <input value={editForm.img || ''} onChange={e => setEditForm({...editForm, img: e.target.value})} className="w-full bg-card-surface border border-white/10 rounded px-3 py-2 outline-none focus:border-accent" />
+                               </div>
+                           </div>
+
+                           <div className="grid grid-cols-3 gap-3">
+                              <select value={editForm.type} onChange={e => setEditForm({...editForm, type: e.target.value})} className="bg-card-surface border border-white/10 rounded px-2 py-2 text-sm outline-none">
+                                  <option value="anime">Anime</option>
+                                  <option value="manga">Manga</option>
+                              </select>
+                              <select value={editForm.year} onChange={e => setEditForm({...editForm, year: e.target.value})} className="bg-card-surface border border-white/10 rounded px-2 py-2 text-sm outline-none">
+                                  {Array.from({length: 25}, (_, i) => 2026 - i).map(y => <option key={y} value={y}>{y}</option>)}
+                              </select>
+                              <select value={editForm.month} onChange={e => setEditForm({...editForm, month: e.target.value})} className="bg-card-surface border border-white/10 rounded px-2 py-2 text-sm outline-none">
+                                  {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={`${m}月`}>{m}月</option>)}
+                              </select>
+                           </div>
+
+                           <div>
+                              <label className="text-xs text-gray-500 font-bold block mb-2">更新週期</label>
+                              <div className="flex flex-wrap gap-2">
+                                  {WEEK_DAYS.map(d => (
+                                      <button key={d} onClick={() => setEditDay(d)} className={`px-3 py-1 text-xs rounded border ${editDay === d ? 'bg-accent text-black border-accent' : 'border-white/10'}`}>{d}</button>
+                                  ))}
+                              </div>
+                           </div>
+
+                           <div>
+                              <label className="text-xs text-gray-500 font-bold block mb-2">標籤</label>
+                              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-white/10 rounded">
+                                  {TAG_POOL.map(t => (
+                                      <button 
+                                          key={t} 
+                                          onClick={() => {
+                                              const tags = editForm.tags || [];
+                                              const newTags = tags.includes(t) ? tags.filter(x => x !== t) : [...tags, t];
+                                              setEditForm({...editForm, tags: newTags});
+                                          }}
+                                          className={`text-[10px] px-2 py-1 rounded transition-colors ${editForm.tags?.includes(t) ? 'bg-accent-pink text-white' : 'bg-white/5 text-gray-400'}`}
+                                      >
+                                          {t}
+                                      </button>
+                                  ))}
+                              </div>
+                           </div>
+
+                           <textarea 
+                              value={editLinksRaw}
+                              onChange={e => setEditLinksRaw(e.target.value)}
+                              placeholder="格式: 第01集|URL (每行一個)"
+                              className="w-full h-32 bg-black/40 border border-white/10 rounded p-3 text-xs font-mono outline-none focus:border-accent"
+                           ></textarea>
+                       </div>
+
+                       <div className="p-4 border-t border-white/10 flex gap-3 bg-white/5">
+                           {editForm.id && (
+                               <button onClick={handleDelete} className="px-4 py-3 rounded-lg bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-colors">
+                                  <i className="fa-solid fa-trash"></i>
+                               </button>
+                           )}
+                           <button onClick={handleSaveData} className="flex-1 bg-accent hover:bg-white text-black font-bold py-3 rounded-lg transition-colors">
+                              儲存變更
+                           </button>
+                       </div>
+                   </div>
+                </div>
+            )}
+
+            {/* Chat Sidebar */}
+            <div className={`fixed inset-y-0 right-0 w-full sm:w-80 bg-panel-bg/95 backdrop-blur-xl border-l border-white/10 z-[80] transform transition-transform duration-300 flex flex-col ${isChatOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                <div className="p-4 border-b border-white/10 flex justify-between items-center">
+                    <h3 className="font-bold">聖域頻道</h3>
+                    <button onClick={() => setIsChatOpen(false)}><i className="fa-solid fa-xmark"></i></button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {chatMessages.map(msg => (
+                        <div key={msg.id} className={`flex flex-col ${msg.u === user ? 'items-end' : 'items-start'}`}>
+                            <span className="text-[10px] text-gray-500 mb-1">{msg.u}</span>
+                            <div className={`max-w-[85%] px-4 py-2 rounded-2xl text-sm ${msg.u === user ? 'bg-accent text-black rounded-br-none' : 'bg-white/10 rounded-bl-none'}`}>
+                                {msg.t}
+                            </div>
+                        </div>
+                    ))}
+                    <div ref={chatBottomRef} />
+                </div>
+                <div className="p-4 border-t border-white/10 flex gap-2">
+                    <input 
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      onKeyPress={e => e.key === 'Enter' && handleChatSend()}
+                      className="flex-1 bg-black/40 border border-white/10 rounded-full px-4 py-2 text-sm outline-none focus:border-accent"
+                      placeholder="發送訊息..."
+                    />
+                    <button onClick={handleChatSend} className="w-10 h-10 rounded-full bg-accent text-black flex items-center justify-center">
+                        <i className="fa-solid fa-paper-plane"></i>
                     </button>
                 </div>
-
-                <div class="editor-row">
-                    <div>
-                        <label class="editor-label" data-lang="ed_title">作品名稱 *</label>
-                        <input type="text" id="ed-title" class="input-dark" style="width:100%;">
-                    </div>
-                    <div>
-                        <label class="editor-label" data-lang="ed_img">封面連結 (URL)</label>
-                        <input type="text" id="ed-img" class="input-dark" style="width:100%;">
-                    </div>
-                </div>
-
-                <div class="editor-row triple" id="row-date-config">
-                    <div>
-                        <label class="editor-label" data-lang="ed_type">類型</label>
-                        <select id="ed-type" class="input-dark" style="width:100%;" onchange="UI.toggleDateFields()">
-                            <option value="anime">動畫 (Anime)</option>
-                            <option value="manga">漫畫 (Manga)</option>
-                        </select>
-                    </div>
-                    <div id="group-year">
-                        <label class="editor-label" data-lang="ed_year">年份</label>
-                        <select id="ed-year" class="input-dark" style="width:100%;"></select>
-                    </div>
-                    <div id="group-month">
-                        <label class="editor-label" data-lang="ed_month">月份</label>
-                        <select id="ed-month" class="input-dark" style="width:100%;"></select>
-                    </div>
-                </div>
-
-                <div id="group-cycle">
-                    <label class="editor-label" data-lang="ed_cycle">更新週期</label>
-                    <div id="ed-day-opts" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;"></div>
-                </div>
-
-                <div>
-                    <label class="editor-label" data-lang="ed_tag">分類標籤</label>
-                    <div class="manual-tag-input">
-                        <input type="text" id="manual-tag" class="input-dark" placeholder="Tags...">
-                        <button class="btn-mini" style="width:auto;" onclick="UI.addManualTag()" data-lang="btn_add">新增</button>
-                    </div>
-                    <div id="ed-tag-opts"></div>
-                </div>
-
-                <div>
-                    <label class="editor-label" data-lang="ed_ep">集數數據 (格式：第01集|URL)</label>
-                    <textarea id="ed-links" class="input-dark" style="width:100%;"></textarea>
-                </div>
             </div>
-        </div>
 
-        <div class="editor-footer">
-            <button class="btn-mini" style="flex:2; background:var(--accent); color:#000; border:none; padding:18px; font-size:1.1rem;" onclick="App.saveData()"><span data-lang="btn_save">確認儲存</span></button>
-            <button id="ed-del-btn" class="btn-mini" style="flex:1; background:#ff4444; border:none; padding:18px;" onclick="App.deleteData()"><span data-lang="btn_del">移除作品</span></button>
-        </div>
-    </div>
-</div>
-
-<script>
-/**
- * =========================================
- * ANIWORLD ELITE V24.2 - Core Logic
- * =========================================
- */
-
-const firebaseConfig = {
-    apiKey: "AIzaSyB_LCa3ZOmcALbxw5SFjx78DzDD3mopXV4",
-    databaseURL: "https://aniworld-e53fb-default-rtdb.asia-southeast1.firebasedatabase.app/"
-};
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-
-const I18N = {
-    'zh-TW': {
-        nav_home: '首頁', nav_anime: '動畫庫', nav_manga: '漫畫庫', nav_fav: '我的收藏', nav_hist: '觀看紀錄',
-        search_ph: '搜尋作品名稱...', btn_cover: '封面更換', btn_pos: '位置調整',
-        filter_all: '全部', filter_anime: '動畫', filter_manga: '漫畫',
-        panel_notice: '系統通知', no_notice: '目前沒有新的動態',
-        panel_chat: '聖域頻道', chat_ph: '輸入訊息...',
-        ep_list: '選集播放', btn_play: '立即觀看', btn_read: '立即閱讀',
-        ed_header: '數據維護中心', ed_auto: '智能抓取 (貼上網站連結)', btn_auto: '一鍵帶入',
-        ed_title: '作品名稱', ed_img: '封面連結 (URL)', ed_type: '類型', ed_year: '年份', ed_month: '月份', ed_cycle: '更新週期', ed_tag: '分類標籤', ed_ep: '集數數據',
-        btn_add: '新增', btn_save: '確認儲存', btn_del: '移除作品',
-        month_s: '月番', year_s: '年'
-    },
-    'ja-JP': {
-        nav_home: 'ホーム', nav_anime: 'アニメ', nav_manga: '漫画', nav_fav: 'お気に入り', nav_hist: '履歴',
-        search_ph: '検索...', btn_cover: 'カバー変更', btn_pos: '位置調整',
-        filter_all: 'すべて', filter_anime: 'アニメ', filter_manga: '漫画',
-        panel_notice: 'システム通知', no_notice: '新しい通知はありません',
-        panel_chat: 'チャット', chat_ph: 'メッセージを入力...',
-        ep_list: 'エピソード', btn_play: '再生する', btn_read: '読む',
-        ed_header: 'データ編集', ed_auto: '自動取得 (URLを入力)', btn_auto: '自動入力',
-        ed_title: 'タイトル', ed_img: '画像URL', ed_type: 'タイプ', ed_year: '年', ed_month: '月', ed_cycle: '更新頻度', ed_tag: 'タグ', ed_ep: 'エピソードデータ',
-        btn_add: '追加', btn_save: '保存', btn_del: '削除',
-        month_s: '月', year_s: '年'
-    }
-};
-
-const CONSTANTS = {
-    WEEK_DAYS: ["週一", "週二", "週三", "週四", "週五", "週六", "週日", "完結"],
-    TAG_POOL: ["熱血", "冒險", "校園", "戀愛", "異世界", "奇幻", "日常", "懸疑", "百合", "耽美", "戰鬥", "美食", "機甲", "治癒", "致鬱", "後宮", "逆後宮", "肉番", "泡麵番", "劇場版", "運動", "智鬥", "勵志", "科幻", "推理", "特攝", "搞笑", "溫馨", "暗黑", "魔法", "偶像", "音樂", "歷史", "吸血鬼", "獸人", "卡牌", "驚悚", "恐怖"].sort(),
-    STORAGE_KEYS: {
-        ROOM: 'ani_v24_room',
-        USER: 'ani_v24_user',
-        AVATAR: 'ani_v24_avatar',
-        LANG: 'ani_v24_lang',
-        BANNER_POS: 'ani_v24_pos_',
-        BANNER_IMG: 'ani_v24_img_'
-    }
-};
-
-const App = {
-    room: '',
-    user: '',
-    avatar: '',
-    dataList: [],
-    currentTab: 'home',
-    currentFilter: '全部',
-    currentID: null,
-    selectedDay: '週一',
-    selectedTags: [],
-    searchTerm: '',
-    histType: 'all',
-    lang: 'zh-TW',
-
-    init() {
-        setTimeout(() => {
-            const boot = document.getElementById('boot-screen');
-            boot.style.opacity = '0';
-            setTimeout(() => boot.style.display = 'none', 800);
-        }, 1500);
-
-        this.room = localStorage.getItem(CONSTANTS.STORAGE_KEYS.ROOM);
-        this.user = localStorage.getItem(CONSTANTS.STORAGE_KEYS.USER);
-        this.avatar = localStorage.getItem(CONSTANTS.STORAGE_KEYS.AVATAR);
-        const savedLang = localStorage.getItem(CONSTANTS.STORAGE_KEYS.LANG);
-        if(savedLang) this.lang = savedLang;
-
-        if(!this.room) {
-            this.room = prompt("聖域房號 (Room ID)：")?.toUpperCase();
-            if(this.room) localStorage.setItem(CONSTANTS.STORAGE_KEYS.ROOM, this.room);
-            else return; 
-        }
-
-        if(!this.user) {
-            this.user = prompt("冒險者稱號 (Username)：") || '冒險者';
-            localStorage.setItem(CONSTANTS.STORAGE_KEYS.USER, this.user);
-        }
-
-        document.getElementById('room-display').innerText = `# ${this.room}`;
-        if (this.avatar) document.getElementById('current-avatar').src = this.avatar;
-
-        this.updateLanguage();
-        UI.setupEditorInputs();
-        Banner.loadSaved();
-        this.bindEvents();
-    },
-
-    toggleLang() {
-        this.lang = this.lang === 'zh-TW' ? 'ja-JP' : 'zh-TW';
-        localStorage.setItem(CONSTANTS.STORAGE_KEYS.LANG, this.lang);
-        this.updateLanguage();
-        UI.renderTags(); 
-        UI.setupEditorInputs(); 
-        this.render(); 
-    },
-
-    updateLanguage() {
-        const t = I18N[this.lang];
-        document.getElementById('lang-display').innerText = this.lang === 'zh-TW' ? 'ZH' : 'JP';
-        
-        document.querySelectorAll('[data-lang]').forEach(el => {
-            const key = el.getAttribute('data-lang');
-            if(t[key]) el.innerText = t[key];
-        });
-        
-        document.querySelectorAll('[data-lang-ph]').forEach(el => {
-            const key = el.getAttribute('data-lang-ph');
-            if(t[key]) el.placeholder = t[key];
-        });
-    },
-
-    bindEvents() {
-        let isFirstLoad = true;
-        database.ref(`rooms/${this.room}/data`).on('value', snap => {
-            this.dataList = snap.val() ? Object.values(snap.val()) : [];
-            this.render();
-            UI.renderTags();
-            
-            if(!isFirstLoad) {
-                Notifications.add(this.lang === 'zh-TW' ? '數據庫已更新' : 'データベースが更新されました');
-            }
-        });
-
-        database.ref(`rooms/${this.room}/chat`).limitToLast(40).on('value', snap => {
-            Chat.render(snap.val(), isFirstLoad);
-            isFirstLoad = false;
-        });
-    },
-
-    setTab(tab) {
-        this.currentTab = tab;
-        this.currentFilter = '全部'; 
-        this.searchTerm = ''; 
-        document.querySelector('.search-input').value = '';
-
-        document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-        const activeLink = document.getElementById(`nav-${tab}`);
-        if(activeLink) activeLink.classList.add('active');
-        
-        const histControls = document.getElementById('hist-controls');
-        if (tab === 'hist') {
-            histControls.style.display = 'flex';
-            this.setHistType('all', document.querySelector('#hist-controls .hist-btn:first-child')); 
-        } else {
-            histControls.style.display = 'none';
-        }
-
-        this.render();
-    },
-    
-    setHistType(type, btnElement) {
-        this.histType = type;
-        document.querySelectorAll('.hist-btn').forEach(b => b.classList.remove('active'));
-        if(btnElement) btnElement.classList.add('active');
-        this.render();
-    },
-
-    setFilter(tag) {
-        this.currentFilter = tag;
-        this.render();
-        UI.renderTags();
-    },
-
-    handleSearch(val) {
-        this.searchTerm = val.toLowerCase();
-        this.render();
-    },
-    
-    fetchMeta() {
-        const urlInput = document.getElementById('ed-auto-url');
-        const url = urlInput.value.trim();
-        const btn = document.querySelector('.btn-fetch');
-        
-        if(!url) return alert("請先輸入目標網址！");
-        try { new URL(url); } catch(e) { return alert("網址格式不正確"); }
-
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
-        btn.disabled = true;
-
-        const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(url);
-
-        fetch(proxyUrl)
-            .then(response => {
-                if (!response.ok) throw new Error('Proxy blocked');
-                return response.text();
-            })
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, "text/html");
-
-                const ogTitle = doc.querySelector('meta[property="og:title"]')?.content 
-                             || doc.querySelector('title')?.innerText || "";
-                
-                const ogImage = doc.querySelector('meta[property="og:image"]')?.content 
-                             || doc.querySelector('meta[name="twitter:image"]')?.content
-                             || doc.querySelector('link[rel="image_src"]')?.href;
-                
-                const description = doc.querySelector('meta[name="description"]')?.content || "";
-                const keywords = doc.querySelector('meta[name="keywords"]')?.content || "";
-
-                if(ogTitle) {
-                    let cleanTitle = ogTitle.split(' - ')[0].split(' | ')[0];
-                    document.getElementById('ed-title').value = cleanTitle;
-                }
-                
-                if(ogImage) {
-                    let finalImg = ogImage;
-                    if(ogImage.startsWith('/')) {
-                        const urlObj = new URL(url);
-                        finalImg = urlObj.origin + ogImage;
-                    }
-                    document.getElementById('ed-img').value = finalImg;
-                }
-
-                const textContent = (ogTitle + " " + description + " " + keywords).toLowerCase();
-                CONSTANTS.TAG_POOL.forEach(tag => {
-                    if(textContent.includes(tag) && !App.selectedTags.includes(tag)) {
-                        App.selectedTags.push(tag);
-                    }
-                });
-                UI.refreshTagOpts();
-
-                const currentLinks = document.getElementById('ed-links').value;
-                if(!currentLinks.trim()) {
-                    document.getElementById('ed-links').value = `第01集|${url}`;
-                }
-
-                if(!ogTitle && !ogImage) alert("自動抓取部分數據失敗，請手動檢查。");
-            })
-            .catch(err => {
-                console.error(err);
-                alert("抓取失敗，請手動輸入。");
-            })
-            .finally(() => {
-                btn.innerHTML = '<i class="fa-solid fa-bolt"></i> ' + I18N[App.lang].btn_auto;
-                btn.disabled = false;
-            });
-    },
-
-    render() {
-        const grid = document.getElementById('main-grid');
-        let filtered = [...this.dataList];
-
-        if(this.currentTab === 'home') {
-            filtered = filtered.sort((a,b) => b.timestamp - a.timestamp).slice(0, 15);
-        } else if(this.currentTab === 'anime') {
-            filtered = filtered.filter(a => a.type === 'anime' || !a.type).sort((a,b) => b.timestamp - a.timestamp);
-        } else if(this.currentTab === 'manga') {
-            filtered = filtered.filter(a => a.type === 'manga').sort((a,b) => b.timestamp - a.timestamp);
-        } else if(this.currentTab === 'fav') {
-            filtered = filtered.filter(a => a.fav);
-        } else if(this.currentTab === 'hist') {
-            filtered = filtered.filter(a => a.lastEp).sort((a,b) => b.timestamp - a.timestamp);
-            if (this.histType === 'anime') {
-                filtered = filtered.filter(a => a.type !== 'manga');
-            } else if (this.histType === 'manga') {
-                filtered = filtered.filter(a => a.type === 'manga');
-            }
-        }
-
-        if(this.currentFilter !== '全部') {
-            filtered = filtered.filter(a => (a.tags || []).includes(this.currentFilter));
-        }
-
-        if(this.searchTerm) {
-            filtered = filtered.filter(a => a.title.toLowerCase().includes(this.searchTerm));
-        }
-
-        grid.innerHTML = filtered.map(item => UI.createCardHTML(item)).join('');
-    },
-
-    saveData() {
-        const id = document.getElementById('ed-id').value || Date.now().toString();
-        const type = document.getElementById('ed-type').value;
-        const title = document.getElementById('ed-title').value.trim();
-        
-        if(!title) return alert("請輸入作品名稱！");
-
-        const tags = [];
-        document.querySelectorAll('#ed-tag-opts .tag-pill.active').forEach(el => {
-            tags.push(el.innerText);
-        });
-
-        const payload = {
-            id,
-            title: title,
-            img: document.getElementById('ed-img').value,
-            type: type, 
-            year: type === 'manga' ? '' : document.getElementById('ed-year').value,
-            month: type === 'manga' ? '' : document.getElementById('ed-month').value,
-            day: this.selectedDay,
-            tags: tags,
-            links: document.getElementById('ed-links').value.split('\n').filter(l => l.trim()),
-            timestamp: Date.now()
-        };
-        
-        database.ref(`rooms/${this.room}/data/${id}`).update(payload)
-            .then(() => UI.closeModals());
-    },
-
-    deleteData() {
-        if(confirm("確定要刪除？")) {
-            database.ref(`rooms/${this.room}/data/${this.currentID}`).remove()
-                .then(() => UI.closeModals());
-        }
-    },
-
-    toggleFav() {
-        const item = this.dataList.find(i => i.id === this.currentID);
-        const newState = !item.fav;
-        database.ref(`rooms/${this.room}/data/${this.currentID}`).update({ fav: newState });
-        
-        const icon = document.getElementById('mv-fav-icon');
-        icon.style.color = newState ? 'var(--accent-pink)' : 'var(--text-sub)';
-        this.render();
-    },
-
-    handleAvatarUpload(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const imgData = e.target.result;
-                this.avatar = imgData;
-                localStorage.setItem(CONSTANTS.STORAGE_KEYS.AVATAR, imgData);
-                document.getElementById('current-avatar').src = imgData;
-            }
-            reader.readAsDataURL(input.files[0]);
-        }
-    },
-
-    logout() {
-        if(confirm("確定要登出？")) {
-            localStorage.clear();
-            location.reload();
-        }
-    }
-};
-
-const Notifications = {
-    list: [],
-    
-    add(text) {
-        const dot = document.getElementById('notice-dot');
-        dot.style.display = 'block';
-        
-        const time = new Date().toLocaleTimeString();
-        const container = document.getElementById('notice-list');
-        
-        if(container.querySelector('[data-lang="no_notice"]')) container.innerHTML = '';
-        
-        const div = document.createElement('div');
-        div.className = 'notice-item';
-        div.innerHTML = `<strong>[${time}]</strong> ${text}`;
-        container.insertBefore(div, container.firstChild);
-    },
-    
-    open() {
-        UI.togglePanel('notice-hub');
-        document.getElementById('notice-dot').style.display = 'none';
-    }
-};
-
-const UI = {
-    renderTags() {
-        const container = document.getElementById('tag-cloud');
-        const tags = ["全部", ...CONSTANTS.TAG_POOL]; 
-        container.innerHTML = tags.map(t => `
-            <div class="tag-pill ${App.currentFilter === t ? 'active' : ''}" onclick="App.setFilter('${t}')">${t}</div>
-        `).join('');
-    },
-
-    createCardHTML(item) {
-        const t = I18N[App.lang];
-        const typeLabel = item.type === 'manga' ? t.filter_manga : t.filter_anime;
-        const subInfo = item.type === 'manga' ? '' : `${item.year} • ${item.day}`;
-        
-        return `
-            <div class="ani-node" onclick="UI.openView('${item.id}')">
-                <div class="fav-hit ${item.fav ? 'active' : ''}" onclick="event.stopPropagation(); App.currentID='${item.id}'; App.toggleFav();">
-                    <i class="fa-solid fa-heart"></i>
-                </div>
-                <img src="${item.img}" class="ani-poster" onerror="this.src='https://via.placeholder.com/400x550?text=NO+IMAGE'">
-                <div class="ani-meta">
-                    <div class="ani-label"><span class="type-badge">${typeLabel}</span>${subInfo}</div>
-                    <div class="ani-name">${item.title}</div>
-                </div>
-            </div>
-        `;
-    },
-
-    openView(id) {
-        requestAnimationFrame(() => {
-            App.currentID = id;
-            const item = App.dataList.find(i => i.id === id);
-            const modal = document.getElementById('modal-view');
-            
-            modal.style.display = 'flex';
-            document.getElementById('mv-title').innerText = item.title;
-            document.getElementById('mv-poster').src = item.img;
-            document.getElementById('mv-blur').src = item.img;
-            
-            const favIcon = document.getElementById('mv-fav-icon');
-            favIcon.style.color = item.fav ? 'var(--accent-pink)' : 'var(--text-sub)';
-
-            document.getElementById('mv-tags').innerHTML = (item.tags || []).map(t => `<div class="tag-pill active" style="font-size:0.75rem; padding:6px 15px;">${t}</div>`).join('');
-            
-            const eps = item.links || [];
-            document.getElementById('mv-eps').innerHTML = eps.map((link, idx) => `
-                <div class="ep-btn ${item.lastEp == idx+1 ? 'active' : ''}" onclick="UI.watch('${item.id}', '${link}', ${idx+1})">${idx+1}</div>
-            `).join('');
-
-            const playBtn = document.getElementById('mv-play-btn');
-            const btnText = item.type === 'manga' ? I18N[App.lang].btn_read : I18N[App.lang].btn_play;
-            playBtn.innerHTML = item.type === 'manga' ? `<i class="fa-solid fa-book-open"></i> ${btnText}` : `<i class="fa-solid fa-play"></i> ${btnText}`;
-            
-            playBtn.onclick = () => {
-                const epIdx = (item.lastEp || 1) - 1;
-                if (eps.length === 0) return alert("尚無連結資料");
-                UI.watch(item.id, eps[epIdx], item.lastEp || 1);
-            };
-        });
-    },
-
-    watch(id, link, ep) {
-        database.ref(`rooms/${App.room}/data/${id}`).update({ lastEp: ep, timestamp: Date.now() });
-        const finalUrl = link.includes('|') ? link.split('|')[1] : link;
-        window.open(finalUrl, '_blank');
-    },
-
-    openEdit(id) {
-        const modal = document.getElementById('modal-editor');
-        modal.style.display = 'flex';
-        
-        document.getElementById('manual-tag').value = '';
-        document.getElementById('ed-auto-url').value = ''; 
-
-        if(!id) {
-            document.getElementById('ed-header').innerText = I18N[App.lang].ed_header;
-            document.getElementById('ed-id').value = "";
-            document.getElementById('ed-title').value = "";
-            document.getElementById('ed-img').value = "";
-            document.getElementById('ed-type').value = "anime";
-            document.getElementById('ed-links').value = "";
-            document.getElementById('ed-del-btn').style.display = 'none';
-            App.selectedTags = [];
-            this.setEditDay("週一");
-        } else {
-            const item = App.dataList.find(i => i.id === id);
-            document.getElementById('ed-header').innerText = I18N[App.lang].ed_header;
-            document.getElementById('ed-id').value = item.id;
-            document.getElementById('ed-title').value = item.title;
-            document.getElementById('ed-img').value = item.img;
-            document.getElementById('ed-type').value = item.type || "anime";
-            document.getElementById('ed-year').value = item.year;
-            document.getElementById('ed-month').value = item.month;
-            document.getElementById('ed-links').value = (item.links || []).join('\n');
-            document.getElementById('ed-del-btn').style.display = 'block';
-            App.selectedTags = item.tags || [];
-            this.setEditDay(item.day || "週一");
-        }
-        
-        this.toggleDateFields();
-        this.refreshTagOpts();
-    },
-
-    switchToEdit() {
-        const id = App.currentID;
-        this.closeModals();
-        setTimeout(() => this.openEdit(id), 100);
-    },
-
-    setupEditorInputs() {
-        const t = I18N[App.lang];
-        const yearSel = document.getElementById('ed-year');
-        const monthSel = document.getElementById('ed-month');
-        const dayBox = document.getElementById('ed-day-opts');
-        const tagBox = document.getElementById('ed-tag-opts');
-
-        yearSel.innerHTML = '';
-        monthSel.innerHTML = '';
-        dayBox.innerHTML = '';
-
-        for(let y=2026; y>=2000; y--) yearSel.innerHTML += `<option value="${y}">${y} ${t.year_s}</option>`;
-        for(let m=1; m<=12; m++) monthSel.innerHTML += `<option value="${m}月">${m} ${t.month_s}</option>`;
-
-        CONSTANTS.WEEK_DAYS.forEach(d => {
-            dayBox.innerHTML += `<div class="ep-btn" id="eday-${d}" onclick="UI.setEditDay('${d}')">${d}</div>`;
-        });
-
-        tagBox.innerHTML = ''; 
-        CONSTANTS.TAG_POOL.forEach(t => {
-            const div = document.createElement('div');
-            div.className = 'tag-pill';
-            div.innerText = t;
-            div.onclick = () => UI.toggleEditTag(div, t);
-            tagBox.appendChild(div);
-        });
-    },
-
-    // [修復] 動態控制 Grid 系統
-    toggleDateFields() {
-        const type = document.getElementById('ed-type').value;
-        const row = document.getElementById('row-date-config');
-        const yearGroup = document.getElementById('group-year');
-        const monthGroup = document.getElementById('group-month');
-        const cycleGroup = document.getElementById('group-cycle');
-        
-        if (type === 'manga') {
-            yearGroup.style.display = 'none';
-            monthGroup.style.display = 'none';
-            cycleGroup.style.display = 'none';
-            row.classList.add('mode-manga');
-        } else {
-            yearGroup.style.display = 'block';
-            monthGroup.style.display = 'block';
-            cycleGroup.style.display = 'block';
-            row.classList.remove('mode-manga');
-        }
-    },
-
-    setEditDay(d) {
-        App.selectedDay = d;
-        document.querySelectorAll('#ed-day-opts .ep-btn').forEach(b => {
-            b.classList.toggle('active', b.innerText === d);
-        });
-    },
-
-    toggleEditTag(el, t) {
-        el.classList.toggle('active');
-    },
-
-    addManualTag() {
-        const input = document.getElementById('manual-tag');
-        const val = input.value.trim();
-        if(!val) return;
-
-        const tagBox = document.getElementById('ed-tag-opts');
-        let exists = false;
-        tagBox.querySelectorAll('.tag-pill').forEach(el => {
-            if(el.innerText === val) {
-                el.classList.add('active');
-                exists = true;
-            }
-        });
-
-        if(!exists) {
-            const div = document.createElement('div');
-            div.className = 'tag-pill active';
-            div.innerText = val;
-            div.onclick = () => div.classList.toggle('active');
-            tagBox.insertBefore(div, tagBox.firstChild);
-        }
-        
-        input.value = '';
-    },
-
-    refreshTagOpts() {
-        const tagBox = document.getElementById('ed-tag-opts');
-        tagBox.querySelectorAll('.tag-pill').forEach(el => el.classList.remove('active'));
-        
-        App.selectedTags.forEach(t => {
-            let found = false;
-            tagBox.querySelectorAll('.tag-pill').forEach(el => {
-                if(el.innerText === t) {
-                    el.classList.add('active');
-                    found = true;
-                }
-            });
-            if(!found) {
-                const div = document.createElement('div');
-                div.className = 'tag-pill active';
-                div.innerText = t;
-                div.onclick = () => div.classList.toggle('active');
-                tagBox.insertBefore(div, tagBox.firstChild);
-            }
-        });
-    },
-
-    closeModals() {
-        document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
-    },
-
-    togglePanel(id) {
-        const el = document.getElementById(id);
-        const isOpen = el.classList.contains('open');
-        document.querySelectorAll('.side-panel').forEach(p => p.classList.remove('open'));
-        if(!isOpen) el.classList.add('open');
-    },
-
-    toggleTheme() {
-        document.body.classList.toggle('light-mode');
-    },
-
-    triggerUpload() {
-        document.getElementById('banner-upload').click();
-    },
-
-    triggerAvatarUpload() {
-        document.getElementById('avatar-upload').click();
-    }
-};
-
-const Banner = {
-    isDragging: false, startY: 0, currentY: 0, isEnabled: false,
-    loadSaved() {
-        const savedPos = localStorage.getItem(CONSTANTS.STORAGE_KEYS.BANNER_POS + App.room);
-        const savedImg = localStorage.getItem(CONSTANTS.STORAGE_KEYS.BANNER_IMG + App.room);
-        if(savedPos) { this.currentY = parseFloat(savedPos); this.updateTransform(); }
-        if(savedImg) document.getElementById('hero-media').src = savedImg;
-    },
-    toggleDrag() {
-        this.isEnabled = !this.isEnabled;
-        const btn = document.getElementById('drag-btn');
-        const area = document.getElementById('hero-area');
-        if(this.isEnabled) { btn.style.background = 'var(--accent)'; btn.style.color = '#000'; area.classList.add('dragging'); } 
-        else { btn.style.background = ''; btn.style.color = ''; area.classList.remove('dragging'); }
-    },
-    startDrag(e) { if(!this.isEnabled) return; this.isDragging = true; this.startY = e.clientY; document.getElementById('hero-media').style.transition = 'none'; },
-    doDrag(e) { if(!this.isDragging) return; this.currentY += e.clientY - this.startY; this.updateTransform(); this.startY = e.clientY; },
-    endDrag() { if(!this.isDragging) return; this.isDragging = false; localStorage.setItem(CONSTANTS.STORAGE_KEYS.BANNER_POS + App.room, this.currentY); document.getElementById('hero-media').style.transition = ''; },
-    updateTransform() { document.getElementById('hero-media').style.transform = `translateY(${this.currentY}px) translateZ(0)`; },
-    handleFile(input) { if(input.files && input.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById('hero-media').src = e.target.result; localStorage.setItem(CONSTANTS.STORAGE_KEYS.BANNER_IMG + App.room, e.target.result); }; r.readAsDataURL(input.files[0]); } }
-};
-
-const Chat = {
-    send() {
-        const input = document.getElementById('chat-input');
-        const text = input.value.trim();
-        if(!text) return;
-
-        database.ref(`rooms/${App.room}/chat`).push({
-            u: App.user, t: text, ts: Date.now()
-        });
-        input.value = "";
-    },
-
-    render(data, isFirstLoad) {
-        const box = document.getElementById('chat-messages');
-        if(!data) return;
-        
-        if (!isFirstLoad) {
-            const lastMsg = Object.values(data).pop();
-            const panel = document.getElementById('chat-hub');
-            if (lastMsg.u !== App.user && !panel.classList.contains('open')) {
-                Notifications.add(`[聊天] ${lastMsg.u}: ${lastMsg.t}`);
-            }
-        }
-
-        box.innerHTML = Object.entries(data).map(([id, msg]) => `
-            <div class="msg-bubble ${msg.u === App.user ? 'self' : 'peer'}">
-                <span class="sender">${msg.u}</span>
-                ${msg.t}
-            </div>
-        `).join('');
-        box.scrollTop = box.scrollHeight;
-    }
-};
-
-App.init();
-
-</script>
-</body>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
+  </body>
 </html>
